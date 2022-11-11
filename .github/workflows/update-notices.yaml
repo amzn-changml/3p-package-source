@@ -50,6 +50,11 @@ jobs:
           popd
           echo "Getting python..."
           ${{ github.workspace }}/o3de/python/get_python.sh
+          
+      #- name: Clean existing files
+      #  run: |
+      #    rm ${{ github.workspace }}/3p-package-source/NOTICES.txt
+      #    rm ${{ github.workspace }}/3p-package-source/SPDX-Licenses.json
       
       - name: Configure
         run: |
@@ -64,7 +69,7 @@ jobs:
           --config-file ${{ github.workspace }}/o3de/scripts/license_scanner/scanner_config.json \
           --license-file-path ${{ github.workspace }}/3p-package-source/NOTICES.txt \
           --package-file-path ${{ github.workspace }}/3p-package-source/SPDX-Licenses.json \
-          --scan-path ${{ github.workspace }}/3rdParty ${{ github.workspace }}/o3de
+          --scan-path ${{ github.workspace }}/o3de ${{ github.workspace }}/3rdParty 
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
