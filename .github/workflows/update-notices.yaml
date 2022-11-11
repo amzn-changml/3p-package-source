@@ -61,7 +61,7 @@ jobs:
       - name: Run scanner script
         run: |
           python ${{ github.workspace }}/o3de/scripts/license_scanner/license_scanner.py \
-          --config-file ./scanner_config.json \
+          --config-file ${{ github.workspace }}/o3de/scripts/license_scanner/scanner_config.json \
           --license-file-path ${{ github.workspace }}/3p-package-source/NOTICES.txt \
           --package-file-path ${{ github.workspace }}/3p-package-source/SPDX-Licenses.json \
           --scan-path ${{ github.workspace }}/3rdParty ${{ github.workspace }}/o3de
