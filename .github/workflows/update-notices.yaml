@@ -44,6 +44,11 @@ jobs:
       
       - name: Configure environment
         run: |
+          echo "Installing dependancies"
+          pushd ${{ github.workspace }}/o3de/scripts/build/build_node/Platform/Linux
+          sudo ./install-ubuntu.sh
+          popd
+          echo "Getting python..."
           ${{ github.workspace }}/o3de/python/get_python.sh
       
       - name: Configure
