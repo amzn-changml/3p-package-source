@@ -48,7 +48,9 @@ jobs:
       
       - name: Configure
         run: |
-          cmake -B ${{ github.workspace }}/build -G "Ninja Multi-Config" \
+          cmake -B ${{ github.workspace }}/build \
+          -S ${{ github.workspace }}/o3de \
+          -G "Ninja Multi-Config" \
           -DLY_3RDPARTY_PATH=${{ github.workspace }}/3rdParty
           
       - name: Run scanner script
