@@ -12,7 +12,7 @@ on:
         type: string
         default: "o3de"
       repository:
-        description: 'The repo to pull additional licenses
+        description: 'The repo to pull additional licenses'
         required: false
         type: string
         
@@ -65,7 +65,7 @@ jobs:
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          commit-message: [Automated] Notices file for ${{ github.sha }}
+          commit-message: "[Automated] Notices file for ${{ github.sha }}"
           signoff: true
           branch: notices-${{ github.sha }}
           reviewers: amzn-changml
