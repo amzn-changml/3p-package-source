@@ -21,7 +21,7 @@ run-name: Create notices files
 jobs:
   Scan:
     name: Deploy
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment: ${{ github.ref_name }} # Check environment against branch
     
     permissions:
@@ -44,27 +44,22 @@ jobs:
       
       - name: Configure environment
         run: |
-          echo "Installing dependancies"
-          pushd ${{ github.workspace }}/o3de/scripts/build/build_node/Platform/Linux
-          sudo ./install-ubuntu.sh
-          popd
-          echo "Getting python..."
-          ${{ github.workspace }}/o3de/python/get_python.sh
+          ${{ github.workspace }}\o3de\python\get_python.bat
       
       - name: Configure
         run: |
-          cmake -B ${{ github.workspace }}/build \
-          -S ${{ github.workspace }}/o3de \
-          -G "Ninja Multi-Config" \
-          -DLY_3RDPARTY_PATH=${{ github.workspace }}/3rdParty
+          cmake -B ${{ github.workspace }}\build `
+          -S ${{ github.workspace }}\o3de `
+          -G "Visual Studio 17 2022" `
+          -DLY_3RDPARTY_PATH=${{ github.workspace }}\3rdParty
           
       - name: Run scanner script
         run: |
-          python ${{ github.workspace }}/o3de/scripts/license_scanner/license_scanner.py \
-          --config-file ${{ github.workspace }}/o3de/scripts/license_scanner/scanner_config.json \
-          --license-file-path ${{ github.workspace }}/3p-package-source/NOTICES.txt \
-          --package-file-path ${{ github.workspace }}/3p-package-source/SPDX-Licenses.json \
-          --scan-path ${{ github.workspace }}/o3de ${{ github.workspace }}/3rdParty 
+          python ${{ github.workspace }}\o3de\scripts\license_scanner\license_scanner.py `
+          --config-file ${{ github.workspace }}\o3de\scripts\license_scanner\scanner_config.json `
+          --license-file-path ${{ github.workspace }}\3p-package-source\NOTICES.txt `
+          --package-file-path ${{ github.workspace }}\3p-package-source\SPDX-Licenses.json `
+          --scan-path ${{ github.workspace }}\o3de ${{ github.workspace }}\3rdParty 
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
