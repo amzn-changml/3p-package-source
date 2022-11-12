@@ -67,6 +67,7 @@ jobs:
           token: ${{ secrets.gha_token }}
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
+          title: "[Automated] Notices file for ${{ github.sha }}"
           commit-message: "[Automated] Notices file for ${{ github.sha }}"
           signoff: true
           branch: notices-${{ github.sha }}
