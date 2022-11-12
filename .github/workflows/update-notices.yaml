@@ -16,7 +16,7 @@ on:
         required: false
         type: string
         
-run-name: Creating notices files
+run-name: Create notices files
 
 jobs:
   Scan:
