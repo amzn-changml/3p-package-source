@@ -50,11 +50,6 @@ jobs:
           popd
           echo "Getting python..."
           ${{ github.workspace }}/o3de/python/get_python.sh
-          
-      #- name: Clean existing files
-      #  run: |
-      #    rm ${{ github.workspace }}/3p-package-source/NOTICES.txt
-      #    rm ${{ github.workspace }}/3p-package-source/SPDX-Licenses.json
       
       - name: Configure
         run: |
@@ -74,9 +69,9 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
         with:
+          token: ${{ secrets.gha_token }}
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           commit-message: "[Automated] Notices file for ${{ github.sha }}"
           signoff: true
           branch: notices-${{ github.sha }}
