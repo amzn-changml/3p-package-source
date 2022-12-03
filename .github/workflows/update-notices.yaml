@@ -18,10 +18,13 @@ on:
         
 run-name: Create notices files
 
-jobs:
+jobs: 
   Scan:
-    name: Deploy
-    runs-on: windows-latest
+    name: Scan licenses
+    strategy:
+      matrix:
+        os: [windows, ubuntu, macos]
+    runs-on: ${{ matrix.os }}-latest
     environment: ${{ github.ref_name }} # Check environment against branch
     
     permissions:
@@ -44,22 +47,69 @@ jobs:
       
       - name: Configure environment
         run: |
-          ${{ github.workspace }}\o3de\python\get_python.bat
-      
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            ${{ github.workspace }}\o3de\python\get_python.bat
+          else
+            ${{ github.workspace }}\o3de\python\get_python.sh
+        
       - name: Configure
-        run: |
-          cmake -B ${{ github.workspace }}\build `
-          -S ${{ github.workspace }}\o3de `
-          -G "Visual Studio 17 2022" `
+        run: >
+          cmake -B ${{ github.workspace }}\build
+          -S ${{ github.workspace }}\o3de
           -DLY_3RDPARTY_PATH=${{ github.workspace }}\3rdParty
           
       - name: Run scanner script
-        run: |
-          python ${{ github.workspace }}\o3de\scripts\license_scanner\license_scanner.py `
-          --config-file ${{ github.workspace }}\o3de\scripts\license_scanner\scanner_config.json `
-          --license-file-path ${{ github.workspace }}\3p-package-source\NOTICES.txt `
-          --package-file-path ${{ github.workspace }}\3p-package-source\SPDX-Licenses.json `
+        run: >
+          python ${{ github.workspace }}\o3de\scripts\license_scanner\license_scanner.py
+          --config-file ${{ github.workspace }}\o3de\scripts\license_scanner\scanner_config.json
+          --license-file-path ${{ github.workspace }}\NOTICES-${{ matrix.os }}.txt
+          --package-file-path ${{ github.workspace }}\SPDX-Licenses-${{ matrix.os }}.json
           --scan-path ${{ github.workspace }}\o3de ${{ github.workspace }}\3rdParty 
+      
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-licenses
+          path: |
+            ${{ github.workspace }}\NOTICES-${{ matrix.os }}.txt
+            ${{ github.workspace }}\SPDX-Licenses-${{ matrix.os }}.json       
+  
+  Merge:
+    name: Merge licenses
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [windows, linux, macos]
+    environment: ${{ github.ref_name }} # Check environment against branch
+    
+    permissions:
+        contents: write
+     
+    steps:
+      - name: Checkout O3DE repo
+        uses: actions/checkout@v3
+        with:
+          repository: o3de/o3de
+          ref: development
+          fetch-depth: 0
+          path: o3de
+      
+      - name: Checkout 3P packages repo
+        uses: actions/checkout@v3
+        with: 
+          ref: main
+          path: 3p-package-source
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.os }}-licenses
+      
+      - name: Merge licenses
+        run: |
+          git merge ${{ github.workspace }}\NOTICES-${{ matrix.os }}.txt ${{ github.workspace }}\3p-package-source\NOTICES.txt
+          git merge ${{ github.workspace }}\SPDX-Licenses-${{ matrix.os }}.json ${{ github.workspace }}\3p-package-source\SPDX-Licenses.json
+          cp ${{ github.workspace }}\3p-package-source\NOTICES.txt ${{ github.workspace }}\o3de\NOTICES.txt
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
