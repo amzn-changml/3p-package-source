@@ -51,6 +51,7 @@ jobs:
             ${{ github.workspace }}\o3de\python\get_python.bat
           else
             ${{ github.workspace }}\o3de\python\get_python.sh
+          fi
         
       - name: Configure
         run: >
