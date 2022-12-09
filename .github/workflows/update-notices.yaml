@@ -49,9 +49,9 @@ jobs:
         shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-            ${{ github.workspace }}/o3de/python/get_python.bat
+            o3de/python/get_python.bat
           else
-            ${{ github.workspace }}/o3de/python/get_python.sh
+            o3de/python/get_python.sh
           fi
         
       - name: Configure
@@ -62,19 +62,19 @@ jobs:
           
       - name: Run scanner script
         run: >
-          python ${{ github.workspace }}/o3de/scripts/license_scanner/license_scanner.py
-          --config-file ${{ github.workspace }}/o3de/scripts/license_scanner/scanner_config.json
-          --license-file-path ${{ github.workspace }}/NOTICES.txt
-          --package-file-path ${{ github.workspace }}/SPDX-Licenses.json
-          --scan-path ${{ github.workspace }}/o3de ${{ github.workspace }}/3rdParty 
+          python o3de/scripts/license_scanner/license_scanner.py
+          --config-file o3de/scripts/license_scanner/scanner_config.json
+          --license-file-path NOTICES.txt
+          --package-file-path SPDX-Licenses.json
+          --scan-path o3de 3rdParty 
       
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}-licenses
           path: |
-            ${{ github.workspace }}/NOTICES.txt
-            ${{ github.workspace }}/SPDX-Licenses.json       
+            NOTICES.txt
+            SPDX-Licenses.json       
   
   Merge:
     name: Merge licenses
@@ -109,9 +109,9 @@ jobs:
         shell: bash
         run: |
           for os in ${os_artifacts[@]); do
-            cp ${{ github.workspace }}/$os-licenses/SPDX-Licenses.json ${{ github.workspace }}/3p-package-source/SPDX-Licenses-$os.json
-            cp ${{ github.workspace }}/$os-licenses/NOTICES.txt ${{ github.workspace }}/3p-package-source/NOTICES-$os.json
-            cp ${{ github.workspace }}/3p-package-source/NOTICES.txt ${{ github.workspace }}/o3de/NOTICES.txt
+            cp $os-licenses/SPDX-Licenses.json 3p-package-source/SPDX-Licenses-$os.json
+            cp $os-licenses/NOTICES.txt ${{ github.workspace }}/3p-package-source/NOTICES-$os.json
+            cp 3p-package-source/NOTICES.txt o3de/NOTICES.txt
           done
           
       - name: Create Pull Request
