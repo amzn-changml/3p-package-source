@@ -50,6 +50,10 @@ jobs:
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
             o3de/python/get_python.bat
+          if [ "$RUNNER_OS" == "Ubuntu" ]; then
+            apt-get update
+            apt-get install libxkbcommon-dev libxcb-xfixes0-dev
+            o3de/python/get_python.bat
           else
             o3de/python/get_python.sh
           fi
