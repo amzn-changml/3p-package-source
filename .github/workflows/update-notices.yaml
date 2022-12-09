@@ -71,15 +71,14 @@ jobs:
         with:
           name: ${{ matrix.os }}-licenses
           path: |
-            ${{ github.workspace }}\NOTICES-${{ matrix.os }}.txt
-            ${{ github.workspace }}\SPDX-Licenses-${{ matrix.os }}.json       
+            ${{ github.workspace }}\NOTICES.txt
+            ${{ github.workspace }}\SPDX-Licenses.json       
   
   Merge:
     name: Merge licenses
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [windows, linux, macos]
+    env:
+      os_artifacts: ("windows" "ubuntu" "macos")
     environment: ${{ github.ref_name }} # Check environment against branch
     
     permissions:
@@ -102,14 +101,14 @@ jobs:
       
       - name: Download artifacts
         uses: actions/download-artifact@v3
-        with:
-          name: ${{ matrix.os }}-licenses
       
       - name: Merge licenses
         run: |
-          git merge ${{ github.workspace }}\NOTICES-${{ matrix.os }}.txt ${{ github.workspace }}\3p-package-source\NOTICES.txt
-          git merge ${{ github.workspace }}\SPDX-Licenses-${{ matrix.os }}.json ${{ github.workspace }}\3p-package-source\SPDX-Licenses.json
-          cp ${{ github.workspace }}\3p-package-source\NOTICES.txt ${{ github.workspace }}\o3de\NOTICES.txt
+          for os in ${os_artifacts[@]); do
+            cp ${{ github.workspace }}\$os-licenses\SPDX-Licenses.json ${{ github.workspace }}\3p-package-source\SPDX-Licenses-$os.json
+            cp ${{ github.workspace }}\$os-licenses\NOTICES.txt ${{ github.workspace }}\3p-package-source\NOTICES-$os.json
+            cp ${{ github.workspace }}\3p-package-source\NOTICES.txt ${{ github.workspace }}\o3de\NOTICES.txt
+          done
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
@@ -122,7 +121,3 @@ jobs:
           signoff: true
           branch: notices-${{ github.sha }}
           reviewers: amzn-changml
-
-        
-          
-      
