@@ -46,13 +46,13 @@ jobs:
           path: 3p-package-source
       
       - name: Configure environment
+        shell: bash
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-            ${{ github.workspace }}\o3de\python\get_python.bat
+            ${{ github.workspace }}/o3de/python/get_python.bat
           else
             ${{ github.workspace }}/o3de/python/get_python.sh
           fi
-        shell: bash
         
       - name: Configure
         run: >
@@ -106,13 +106,13 @@ jobs:
         uses: actions/download-artifact@v3
       
       - name: Merge licenses
+        shell: bash
         run: |
           for os in ${os_artifacts[@]); do
             cp ${{ github.workspace }}/$os-licenses/SPDX-Licenses.json ${{ github.workspace }}/3p-package-source/SPDX-Licenses-$os.json
             cp ${{ github.workspace }}/$os-licenses/NOTICES.txt ${{ github.workspace }}/3p-package-source/NOTICES-$os.json
             cp ${{ github.workspace }}/3p-package-source/NOTICES.txt ${{ github.workspace }}/o3de/NOTICES.txt
           done
-        shell: bash
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
