@@ -76,6 +76,7 @@ jobs:
   
   Merge:
     name: Merge licenses
+    needs: Scan
     runs-on: ubuntu-latest
     env:
       os_artifacts: ("windows" "ubuntu" "macos")
