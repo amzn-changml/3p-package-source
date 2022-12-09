@@ -48,7 +48,7 @@ jobs:
       - name: Configure environment
         run: |
           if [ "$RUNNER_OS" == "Windows" ]; then
-            ${{ github.workspace }}/o3de/python/get_python.bat
+            ${{ github.workspace }}\o3de\python\get_python.bat
           else
             ${{ github.workspace }}/o3de/python/get_python.sh
           fi
