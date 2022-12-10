@@ -85,7 +85,7 @@ jobs:
     needs: Scan
     runs-on: ubuntu-latest
     env:
-      os_artifacts: ("windows" "ubuntu" "macos")
+      os_artifacts: (windows ubuntu macos)
     environment: ${{ github.ref_name }} # Check environment against branch
     
     permissions:
