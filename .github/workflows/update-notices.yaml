@@ -52,7 +52,7 @@ jobs:
             o3de/python/get_python.bat
           elif [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt-get update
-            sudo apt-get install -y libglu1-mesa-dev libxkbcommon-dev libxcb-xfixes0-dev
+            sudo apt-get install -y libglu1-mesa-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev
             o3de/python/get_python.sh
           else
             o3de/python/get_python.sh
