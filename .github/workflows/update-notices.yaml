@@ -66,7 +66,7 @@ jobs:
           
       - name: Run scanner script
         run: >
-          python o3de/scripts/license_scanner/license_scanner.py
+          python3 o3de/scripts/license_scanner/license_scanner.py
           --config-file o3de/scripts/license_scanner/scanner_config.json
           --license-file-path NOTICES.txt
           --package-file-path SPDX-Licenses.json
