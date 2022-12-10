@@ -112,7 +112,7 @@ jobs:
       - name: Merge licenses
         shell: bash
         run: |
-          for os in ${os_artifacts[@]); do
+          for os in ${os_artifacts[@]}; do
             cp $os-licenses/SPDX-Licenses.json 3p-package-source/SPDX-Licenses-$os.json
             cp $os-licenses/NOTICES.txt ${{ github.workspace }}/3p-package-source/NOTICES-$os.json
             cp 3p-package-source/NOTICES.txt o3de/NOTICES.txt
