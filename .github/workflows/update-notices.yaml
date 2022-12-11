@@ -122,7 +122,7 @@ jobs:
           dos2unix -q NOTICES.txt || true
           for os in ${os_artifacts[@]}; do
             dos2unix -q $os-licenses/NOTICES.txt || true
-            diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt
+            diff --line-format %L ./$os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt
             cp -f NOTICES-merged.txt NOTICES.txt
           done
           cp -f SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
