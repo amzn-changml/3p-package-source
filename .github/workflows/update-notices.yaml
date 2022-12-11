@@ -130,6 +130,7 @@ jobs:
           cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
           
       - name: Create Pull Request
+        if: always()
         uses: peter-evans/create-pull-request@v4.2.0
         with:
           token: ${{ secrets.gha_token }}
