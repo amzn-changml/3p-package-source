@@ -115,7 +115,7 @@ jobs:
         uses: actions/download-artifact@v3
       
       - name: Merge licenses
-        shell: bash
+        continue-on-error: true
         run: |
           jq -s '.[0] + .[1] + .[2] | unique | sort_by(.PackageName)' *-licenses/SPDX-*.json > SPDX-Licenses.json
           cp 3p-package-source/NOTICES.txt NOTICES.txt
@@ -130,7 +130,6 @@ jobs:
           cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
           
       - name: Create Pull Request
-        if: always()
         uses: peter-evans/create-pull-request@v4.2.0
         with:
           token: ${{ secrets.gha_token }}
