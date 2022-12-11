@@ -118,16 +118,16 @@ jobs:
         shell: bash
         run: |
           jq -s '.[0] + .[1] + .[2] | unique | sort_by(.PackageName)' *-licenses/*.json > SPDX-Licenses.json
-          cp 3p-package-source/NOTICES.txt ./NOTICES.txt
-          dos2unix -q ./NOTICES.txt || true
+          cp 3p-package-source/NOTICES.txt NOTICES.txt
+          dos2unix -q NOTICES.txt
           for os in ${os_artifacts[@]}; do
-            dos2unix -q $os-licenses/NOTICES.txt || true
-            diff --line-format %L $os-licenses/NOTICES.txt ./NOTICES.txt > NOTICES-merged.txt
-            cp ./NOTICES-merged.txt ./NOTICES.txt
+            dos2unix -q $os-licenses/NOTICES.txt
+            diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt
+            \cp NOTICES-merged.txt NOTICES.txt
           done
-          cp SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
-          cp NOTICES.txt 3p-package-source/NOTICES.txt
-          cp 3p-package-source/NOTICES.txt o3de/NOTICES.txt
+          \cp SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
+          \cp NOTICES.txt 3p-package-source/NOTICES.txt
+          \cp 3p-package-source/NOTICES.txt o3de/NOTICES.txt
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.0
