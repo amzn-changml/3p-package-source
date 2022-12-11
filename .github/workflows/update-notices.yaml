@@ -121,7 +121,7 @@ jobs:
           cp 3p-package-source/NOTICES.txt NOTICES.txt
           dos2unix NOTICES.txt
           for os in ${os_artifacts[@]}; do
-            dos2unix $os-licenses/NOTICES.txt
+            dos2unix -q $os-licenses/NOTICES.txt
             diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt
             cp NOTICES-merged.txt NOTICES.txt
           done
