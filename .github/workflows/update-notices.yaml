@@ -115,7 +115,6 @@ jobs:
         uses: actions/download-artifact@v3
       
       - name: Merge licenses
-        continue-on-error: true
         run: |
           # jq -s '.[0] + .[1] + .[2] | unique | sort_by(.PackageName)' *-licenses/SPDX-*.json > SPDX-Licenses.json
           cp 3p-package-source/NOTICES.txt NOTICES.txt
