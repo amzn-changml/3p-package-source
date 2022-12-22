@@ -131,14 +131,18 @@ jobs:
           cp -f NOTICES.txt 3p-package-source/NOTICES.txt
           cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
           
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v3.5.0
+          
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4.2.0
+        uses: peter-evans/create-pull-request@v4.2.3
         with:
           token: ${{ secrets.gha_token }}
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
-          title: "[Automated] Notices file for ${{ github.sha }}"
-          commit-message: "[Automated] Notices file for ${{ github.sha }}"
+          title: "[Automated] Notices file for ${GITHUB_SHA:0:7}"
+          commit-message: "${{steps.build_changelog.outputs.changelog}}"
           signoff: true
-          branch: notices-${{ github.sha }}
+          branch: notices-${GITHUB_SHA:0:7}
           reviewers: amzn-changml
