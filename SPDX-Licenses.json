@@ -12,13 +12,13 @@
         "LicenseFile": "LICENSE.txt"
     },
     {
-        "PackageName": "python-3.7.10-rev2-windows",
+        "PackageName": "python-3.10.5-rev1-windows",
         "URL": "https://python.org",
         "License": "PSF-2.0",
         "LicenseFile": "python/LICENSE.txt"
     },
     {
-        "PackageName": "assimp-5.0.1-rev12-windows",
+        "PackageName": "assimp-5.1.6-rev1-windows",
         "URL": "https://github.com/assimp/assimp",
         "License": "BSD-3-Clause",
         "LicenseFile": "assimp/LICENSE"
@@ -30,7 +30,7 @@
         "LicenseFile": "astc-encoder/LICENSE.txt"
     },
     {
-        "PackageName": "AWSGameLiftServerSDK-3.4.1-rev1-windows",
+        "PackageName": "AWSGameLiftServerSDK-3.4.2-rev1-windows",
         "URL": "https://aws.amazon.com/documentation/gamelift/",
         "License": "Apache-2.0",
         "LicenseFile": "AWSGameLiftServerSDK/LICENSE_AMAZON_GAMELIFT_SDK.TXT"
@@ -42,7 +42,7 @@
         "LicenseFile": "AWSNativeSDK/LICENSE"
     },
     {
-        "PackageName": "azslc-1.7.34-rev1-windows",
+        "PackageName": "azslc-1.7.35-rev1-windows",
         "URL": "https://github.com/o3de/o3de-azslc",
         "License": "CUSTOM",
         "LicenseFile": "azslc/LICENSE.txt"
@@ -78,19 +78,19 @@
         "LicenseFile": "d3dx12/license.txt"
     },
     {
-        "PackageName": "DirectXShaderCompilerDxc-1.6.2104-o3de-rev3-windows",
-        "URL": "https://github.com/aws-lumberyard/DirectXShaderCompiler",
+        "PackageName": "DirectXShaderCompilerDxc-1.6.2112-o3de-rev1-windows",
+        "URL": "https://github.com/o3de/DirectXShaderCompiler",
         "License": "NCSA",
         "LicenseFile": "DirectXShaderCompilerDxc/LICENSE.TXT"
     },
     {
-        "PackageName": "expat-2.4.2-rev1-windows",
+        "PackageName": "expat-2.4.2-rev2-windows",
         "URL": "https://libexpat.github.io/",
         "License": "MIT",
         "LicenseFile": "expat/COPYING"
     },
     {
-        "PackageName": "freetype-2.10.4.16-windows",
+        "PackageName": "freetype-2.11.1-rev1-windows",
         "URL": "https://www.freetype.org/",
         "License": "FTL",
         "LicenseFile": "freetype/FTL.TXT"
@@ -114,12 +114,6 @@
         "LicenseFile": "license.txt"
     },
     {
-        "PackageName": "libpng-1.6.37-rev1-windows",
-        "URL": "http://www.libpng.org/",
-        "License": "libpng-2.0",
-        "LicenseFile": "libpng/LICENSE"
-    },
-    {
         "PackageName": "libsamplerate-0.2.1-rev2-windows",
         "URL": "http://libsndfile.github.io/libsamplerate/",
         "License": "BSD-2-Clause",
@@ -127,30 +121,6 @@
     },
     {
         "PackageName": "Lua-5.4.4-rev1-windows",
-        "URL": "https://github.com/lua/lua",
-        "License": "MIT",
-        "LicenseFile": "Lua/LICENSE.txt"
-    },
-    {
-        "PackageName": "Lua-5.4.4-rev1-linux",
-        "URL": "https://github.com/lua/lua",
-        "License": "MIT",
-        "LicenseFile": "Lua/LICENSE.txt"
-    },
-    {
-        "PackageName": "Lua-5.4.4-rev1-android",
-        "URL": "https://github.com/lua/lua",
-        "License": "MIT",
-        "LicenseFile": "Lua/LICENSE.txt"
-    },
-    {
-        "PackageName": "Lua-5.4.4-rev1-ios",
-        "URL": "https://github.com/lua/lua",
-        "License": "MIT",
-        "LicenseFile": "Lua/LICENSE.txt"
-    },
-    {
-        "PackageName": "Lua-5.4.4-rev1-mac",
         "URL": "https://github.com/lua/lua",
         "License": "MIT",
         "LicenseFile": "Lua/LICENSE.txt"
@@ -186,28 +156,16 @@
         "LicenseFile": "NvCloth/NvCloth/license.txt"
     },
     {
-        "PackageName": "OpenEXR-3.1.3-rev2-windows",
-        "URL": "https://github.com/AcademySoftwareFoundation/openexr",
+        "PackageName": "OpenEXR-3.1.3-rev4-windows",
+        "URL": "https://www.openexr.com/",
         "License": "BSD-3-Clause",
         "LicenseFile": "OpenEXR/LICENSE.md"
     },
     {
-        "PackageName": "OpenEXR-3.1.3-rev2-linux",
-        "URL": "https://github.com/AcademySoftwareFoundation/openexr",
+        "PackageName": "openimageio-opencolorio-2.3.17-rev2-windows",
+        "URL": "https://github.com/OpenImageIO/oiio and https://opencolorio.org/",
         "License": "BSD-3-Clause",
-        "LicenseFile": "OpenEXR/LICENSE.md"
-    },
-    {
-        "PackageName": "OpenEXR-3.1.3-rev2-mac",
-        "URL": "https://github.com/AcademySoftwareFoundation/openexr",
-        "License": "BSD-3-Clause",
-        "LicenseFile": "OpenEXR/LICENSE.md"
-    },
-    {
-        "PackageName": "openimageio-2.1.16.0-rev2-windows",
-        "URL": "https://openimageio.org/",
-        "License": "BSD 3",
-        "LicenseFile": "LICENSE.md"
+        "LicenseFile": "LICENSE.TXT"
     },
     {
         "PackageName": "OpenMesh-8.1-rev3-windows",
@@ -216,7 +174,7 @@
         "LicenseFile": "OpenMesh/LICENSE"
     },
     {
-        "PackageName": "OpenSSL-1.1.1b-rev2-windows",
+        "PackageName": "OpenSSL-1.1.1o-rev1-windows",
         "URL": "https://github.com/openssl/openssl",
         "License": "OpenSSL",
         "LicenseFile": "OpenSSL/LICENSE"
@@ -228,28 +186,34 @@
         "LicenseFile": "PhysX/LICENSE.md"
     },
     {
+        "PackageName": "png-1.6.37-rev2-windows",
+        "URL": "http://www.libpng.org/",
+        "License": "libpng-2.0",
+        "LicenseFile": "png/LICENSE"
+    },
+    {
         "PackageName": "poly2tri-7f0487a-rev1-windows",
         "URL": "https://github.com/jhasse/poly2tri",
         "License": "BSD-3-Clause",
         "LicenseFile": "poly2tri/LICENSE"
     },
     {
-        "PackageName": "pybind11-2.4.3-rev3-multiplatform",
+        "PackageName": "pybind11-2.10.0-rev1-multiplatform",
         "URL": "https://github.com/pybind/pybind11",
         "License": "BSD-3-Clause",
         "LicenseFile": "pybind11/LICENSE"
     },
     {
-        "PackageName": "pyside2-qt-5.15.1-rev2-windows",
-        "URL": "https://download.qt.io/official_releases/QtForPython/pyside2",
+        "PackageName": "pyside2-5.15.2.1-py3.10-rev3-windows",
+        "URL": "https://code.qt.io/cgit/pyside/pyside-setup.git",
         "License": "custom",
-        "LicenseFile": "pyside2/LICENSES.txt"
+        "LicenseFile": "pyside2/LICENSE.LGPLv3"
     },
     {
-        "PackageName": "qt-5.15.2-rev4-windows",
-        "URL": "https://code.qt.io/cgit/qt/qt5.git/",
+        "PackageName": "qt-5.15.2-rev7-windows",
+        "URL": "https://www.qt.io/",
         "License": "LGPL-3.0",
-        "LicenseFile": "qt/LICENSE"
+        "LicenseFile": "qt/LICENSE.LGPLv3"
     },
     {
         "PackageName": "RapidJSON-1.1.0-rev1-multiplatform",
@@ -292,6 +256,12 @@
         "URL": "https://github.com/kmammou/v-hacd",
         "License": "BSD-3-Clause",
         "LicenseFile": "v-hacd/LICENSE"
+    },
+    {
+        "PackageName": "vulkan-validationlayers-1.2.198-rev1-windows",
+        "URL": "https://github.com/KhronosGroup/Vulkan-ValidationLayers",
+        "License": "Apache-2.0",
+        "LicenseFile": "vulkan-validationlayers/LICENSE.txt"
     },
     {
         "PackageName": "xxhash-0.7.4-rev1-multiplatform",
