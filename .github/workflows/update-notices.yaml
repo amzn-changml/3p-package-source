@@ -106,6 +106,13 @@ jobs:
         with: 
           ref: main
           path: 3p-package-source
+          
+      - name: "Build Changelog"
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v3.5.0
+        with:
+          path: 3p-package-source
+          repo: 3p-package-source
       
       - name: Configure environment
         run: |
@@ -131,12 +138,6 @@ jobs:
           cp -f SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
           cp -f NOTICES.txt 3p-package-source/NOTICES.txt
           cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
-          
-      - name: "Build Changelog"
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v3.5.0
-        with:
-          path: 3p-package-source
           
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.3
