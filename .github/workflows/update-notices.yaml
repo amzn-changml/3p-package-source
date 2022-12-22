@@ -124,8 +124,8 @@ jobs:
             dos2unix -q $os-licenses/NOTICES.txt || true
             echo Merging $os from $os-licenses
             ls -lah $os-licenses
-            diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt
-            cp -f $os-licenses/NOTICES.txt NOTICES-$os.txt
+            diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt || true
+            cp -f NOTICES-merged.txt NOTICES.txt
           done
           cp -f SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
           cp -f NOTICES.txt 3p-package-source/NOTICES.txt
