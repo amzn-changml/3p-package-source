@@ -107,12 +107,10 @@ jobs:
           ref: main
           path: 3p-package-source
           
-      - name: "Build Changelog"
+      - name: Build Changelog
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v3.5.0
-        with:
-          path: 3p-package-source
-          repo: 3p-package-source
+        run: |
+          echo "changelog=$(git shortlog -e -n -s -- 3p-package-source) >> $GITHUB_OUTPUT"
       
       - name: Configure environment
         run: |
