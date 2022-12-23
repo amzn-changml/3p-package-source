@@ -136,15 +136,15 @@ jobs:
           cp -f SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
           cp -f NOTICES.txt 3p-package-source/NOTICES.txt
           cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
-          
+              
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4.2.3
         with:
           token: ${{ secrets.gha_token }}
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
-          title: "[Automated] Notices file for ${GITHUB_SHA:0:7}"
+          title: "[Automated] Notices file for ${{ github.sha:0:7 }}"
           commit-message: "${{steps.build_changelog.outputs.changelog}}"
           signoff: true
-          branch: notices-${GITHUB_SHA:0:7}
+          branch: notices-${{ github.sha:0:7 }}
           reviewers: amzn-changml
