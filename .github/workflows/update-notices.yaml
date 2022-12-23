@@ -143,8 +143,8 @@ jobs:
           token: ${{ secrets.gha_token }}
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
-          title: "[Automated] Notices file for ${{ github.sha:0:7 }}"
+          title: "[Automated] Notices file for ${{ github.sha }}"
           commit-message: "${{steps.build_changelog.outputs.changelog}}"
           signoff: true
-          branch: notices-${{ github.sha:0:7 }}
+          branch: notices-${{ github.sha }}
           reviewers: amzn-changml
