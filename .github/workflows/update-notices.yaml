@@ -110,7 +110,7 @@ jobs:
       - name: Build Changelog
         id: build_changelog
         run: |
-          echo "changelog=$(git shortlog -e -n -s -- 3p-package-source) >> $GITHUB_OUTPUT"
+          echo "changelog=$(git shortlog -e -n -s -- 3p-package-source)" >> $GITHUB_OUTPUT
       
       - name: Configure environment
         run: |
@@ -144,7 +144,8 @@ jobs:
           path: 3p-package-source
           committer: GitHub <noreply@github.com>
           title: "[Automated] Notices file for ${{ github.sha }}"
-          commit-message: "${{steps.build_changelog.outputs.changelog}}"
+          commit-message: "[Automated] Notices file for ${{ github.sha }}"
+          body: "${{steps.build_changelog.outputs.changelog}}"
           signoff: true
           branch: notices-${{ github.sha }}
           reviewers: amzn-changml
