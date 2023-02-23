@@ -1,8 +1,8 @@
 {
    "git_url":"https://github.com/google/benchmark.git",
-   "git_tag":"v1.5.0",
+   "git_tag":"v1.7.0",
    "package_name":"googlebenchmark",
-   "package_version":"1.5.0-rev2",
+   "package_version":"1.7.0-rev1",
    "package_url":"https://github.com/google/benchmark",
    "package_license":"Apache-2.0",
    "package_license_file":"LICENSE",
@@ -35,15 +35,6 @@
                "-DCMAKE_INSTALL_LIBDIR=\"lib/Release\"",
                "-DCMAKE_BUILD_TYPE=Release"
             ],
-            "cmake_build_args":[
-               "-j"
-            ],
-            "custom_additional_compile_definitions":[
-               
-            ],
-            "custom_additional_link_options":[
-               
-            ],
             "custom_additional_libraries":[
                "Shlwapi"
             ]
@@ -70,18 +61,7 @@
                "-DCMAKE_INSTALL_LIBDIR=\"lib/Release\"",
                "-DCMAKE_BUILD_TYPE=Release"
             ],
-            "cmake_build_args":[
-               "-j"
-            ],
-            "custom_additional_compile_definitions":[
-               
-            ],
-            "custom_additional_link_options":[
-               
-            ],
-            "custom_additional_libraries":[
-               
-            ]
+            "package_version":"1.7.0-rev2"
          }
       },
       "Darwin":{
@@ -105,19 +85,6 @@
                "-DBENCHMARK_ENABLE_TESTING=OFF",
                "-DCMAKE_INSTALL_LIBDIR=\"lib/Release\"",
                "-DCMAKE_BUILD_TYPE=Release"
-            ],
-            "cmake_build_args":[
-               "-j",
-               "8"
-            ],
-            "custom_additional_compile_definitions":[
-               
-            ],
-            "custom_additional_link_options":[
-               
-            ],
-            "custom_additional_libraries":[
-               
             ]
          },
          "iOS":{
@@ -159,15 +126,6 @@
                "Release",
                "-j",
                "8"
-            ],
-            "custom_additional_compile_definitions":[
-               
-            ],
-            "custom_additional_link_options":[
-               
-            ],
-            "custom_additional_libraries":[
-               
             ]
          }
       },
@@ -192,17 +150,9 @@
                "-DBENCHMARK_ENABLE_TESTING=OFF",
                "-DCMAKE_INSTALL_LIBDIR=\"lib/Release\"",
                "-DCMAKE_BUILD_TYPE=Release"
-            ],
-            "cmake_build_args":[
-               "-j"
-            ],
-            "cmake_compile_definitions":[
-               
-            ],
-            "cmake_link_options":[
-               
             ]
-         }
+         },
+	 "Linux-aarch64": "@Linux"
       }
    }
 }

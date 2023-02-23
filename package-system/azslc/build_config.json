@@ -1,8 +1,8 @@
 {
    "git_url":"https://github.com/o3de/o3de-azslc.git",
-   "git_tag":"1.7.35",
+   "git_tag":"1.8.15",
    "package_name":"azslc",
-   "package_version":"1.7.35-rev1",
+   "package_version":"1.8.15-rev2",
    "package_url":"https://github.com/o3de/o3de-azslc",
    "package_license":"CUSTOM",
    "package_license_file":"LICENSE.txt",
@@ -39,7 +39,8 @@
             "custom_install_cmd": [
                "./install_azslc_linux.sh"
             ]
-         }
+         },
+         "Linux-aarch64": "@Linux"
       }
    }
 }

@@ -20,6 +20,8 @@ import subprocess
 import sys
 
 from package_downloader import PackageDownloader
+from archive_downloader import download_and_verify, extract_package
+
 
 SCHEMA_DESCRIPTION = """
 Build Config Description:
@@ -126,6 +128,15 @@ The following keys can only exist at the target platform level as they describe 
     - Otherwise you can use DOWNLOADED_PACKAGE_FOLDERS env var in your custom script and set
     - CMAKE_MODULE_PATH to be that value, yourself.
     - The subfolder can be empty, in which case the root of the package will be used.
+
+* additional_download_packages            : list of archived package files to download and extract for use in any custom build script. The packages will
+                                            be extracted to the working temp folder. The list will be a list of 3-TUPLES of 
+                                            [full_download_url, file hash, hash algorithm] where:
+                                               full_download_url - The full download URL of the package to download
+                                               file hash - The hex-string of the fingerprint to validate the download with. If this is left blank, no validation
+                                                           will be done, instead it will be calculated on the downloaded package and printed to the console.
+                                               hash algorithm - The hash algorithm to use to calculate the file hash.
+
 
 Note about environment variables:
 When custom commands are issued (build, install, and test), the following environment variables will be set
@@ -234,6 +245,7 @@ class PackageInfo(object):
         self.cmake_find_template_custom_indent = _get_value("cmake_find_template_custom_indent", default=1)
         self.additional_src_files = _get_value("additional_src_files", required=False)
         self.depends_on_packages = _get_value("depends_on_packages", required=False)
+        self.additional_download_packages = _get_value("additional_download_packages", required=False)
         self.cmake_src_subfolder = _get_value("cmake_src_subfolder", required=False)
         self.cmake_generate_args_common = _get_value("cmake_generate_args_common", required=False)
         self.cmake_build_args_common = _get_value("cmake_build_args_common", required=False)
@@ -498,27 +510,44 @@ class BuildInfo(object):
 
         # Sync to the source folder
         if self.src_folder.is_dir():
-            # If the folder exists, see if git stash works or not
+            print(f"Checking git status of path '{self.src_folder}' ...")
+            git_status_cmd = ['git', 'status', '-s']
+            call_result = subprocess.run(subp_args(git_status_cmd),
+                                         shell=True,
+                                         capture_output=True,
+                                         cwd=str(self.src_folder.resolve()))
+            # If any error, this is not a valid git folder, proceed with cloning
+            if call_result.returncode != 0:
+                print(f"Path '{self.src_folder}' is not a valid git folder. Deleting and re-cloning...")
+                # Not a valid git folder, okay to remove and re-clone
+                delete_folder(self.src_folder)
+                self.clone_to_local()
+            else:
+                # If this is a valid git folder, check if the patch was applied or if the source was
+                # altered.
+                if len(call_result.stdout.decode('utf-8', 'ignore')):
+                    # If anything changed, then restore the entire source tree
+                    print(f"Path '{self.src_folder}' was modified. Restoring...")
+                    git_restore_cmd = ['git', 'restore', '--recurse-submodules', ':/']
+                    call_result = subprocess.run(subp_args(git_restore_cmd),
+                                                 shell=True,
+                                                 capture_output=False,
+                                                 cwd=str(self.src_folder.resolve()))
+                    if call_result.returncode != 0:
+                        # If we cannot restore through git, then delete the folder and re-clone
+                        print(f"Unable to restore {self.src_folder}. Deleting and re-cloning...")
+                        delete_folder(self.src_folder)
+                        self.clone_to_local()
+
+            # Do a re-pull
             git_pull_cmd = ['git',
-                            'stash']
+                            'pull']
             call_result = subprocess.run(subp_args(git_pull_cmd),
                                          shell=True,
                                          capture_output=True,
                                          cwd=str(self.src_folder.resolve()))
             if call_result.returncode != 0:
-                # Not a valid git folder, okay to remove and re-clone
-                delete_folder(self.src_folder)
-                self.clone_to_local()
-            else:
-                # Do a re-pull
-                git_pull_cmd = ['git',
-                                'pull']
-                call_result = subprocess.run(subp_args(git_pull_cmd),
-                                             shell=True,
-                                             capture_output=True,
-                                             cwd=str(self.src_folder.resolve()))
-                if call_result.returncode != 0:
-                    raise BuildError(f"Error pulling source from GitHub: {call_result.stderr.decode('UTF-8', 'ignore')}")
+                raise BuildError(f"Error pulling source from GitHub: {call_result.stderr.decode('UTF-8', 'ignore')}")
         else:
             self.clone_to_local()
 
@@ -571,8 +600,28 @@ class BuildInfo(object):
         if self.package_info.depends_on_packages:
             for package_name, package_hash, _ in self.package_info.depends_on_packages:
                 temp_packages_folder = self.base_temp_folder
-                if not PackageDownloader.DownloadAndUnpackPackage(package_name, package_hash, str(temp_packages_folder)):
-                    raise BuildError(f"Failed to download a required dependency: {package_name}")
+                if PackageDownloader.ValidateUnpackedPackage(package_name, package_hash, str(temp_packages_folder)):
+                    print(f"Package {package_name} already downloaded")
+                else:
+                    if not PackageDownloader.DownloadAndUnpackPackage(package_name, package_hash, str(temp_packages_folder)):
+                        raise BuildError(f"Failed to download a required dependency: {package_name}")
+
+        # Check if there are any additional package dependencies to download and extract
+        if self.package_info.additional_download_packages:
+            print("Downloading additional packages")
+            for package_url, package_hash, package_algorithm in self.package_info.additional_download_packages:
+                print(f"Retrieving additional package from {package_url}")
+
+                downloaded_package_file = download_and_verify(src_url=package_url,
+                                                              src_zip_hash=package_hash,
+                                                              src_zip_hash_algorithm=package_algorithm,
+                                                              target_folder=self.base_temp_folder)
+
+                extracted_package_path = extract_package(src_package_file=downloaded_package_file, 
+                                                         target_folder=self.base_temp_folder)
+
+
+
 
 
     def build_and_install_cmake(self):
@@ -623,7 +672,7 @@ class BuildInfo(object):
 
                 if self.package_info.custom_toolchain_file:
                     custom_toolchain_file = self.package_info.custom_toolchain_file
-                    custom_toolchain_file_path = pathlib.Path(custom_toolchain_file).resolve()
+                    custom_toolchain_file_path = pathlib.Path(custom_toolchain_file).absolute().resolve()
                     if not custom_toolchain_file_path.exists():
                         raise BuildError(f"Custom toolchain file specified does not exist: {custom_toolchain_file}\n"
                                          f"Path resolved: {custom_toolchain_file_path} ")
@@ -1012,6 +1061,9 @@ def prepare_build(platform_name, base_folder, build_folder, package_root_folder,
     try:
         eligible_platforms = build_config["Platforms"][platform.system()]
         target_platform_config = eligible_platforms[platform_name]
+        # Check if the target platform is an alias to another platform from the current eligible_platforms
+        if isinstance(target_platform_config, str) and target_platform_config[0] == '@':
+            target_platform_config = eligible_platforms[target_platform_config[1:]]
     except KeyError as e:
         raise BuildError(f"Invalid build config : {str(e)}")
 
@@ -1086,8 +1138,8 @@ if __name__ == '__main__':
                             help='The platform to build the package for.',
                             required=True)
         parser.add_argument('--package-root',
-                            help="The root path where to install the built packages to.",
-                            required=True)
+                            help="The root path where to install the built packages to. This defaults to the {base_path}/temp. ",
+                            required=False)
         parser.add_argument('--cmake-path',
                             help='Path to where cmake is installed. Defaults to the system installed one.',
                             default='')
@@ -1108,13 +1160,16 @@ if __name__ == '__main__':
 
         parsed_args = parser.parse_args(sys.argv[1:])
 
+        # If package_root is not supplied, default to {base_path}/temp
+        resolved_package_root = parsed_args.package_root or f'{parsed_args.base_path}/temp'
+
         cmake_path = validate_cmake(f"{parsed_args.cmake_path}/cmake" if parsed_args.cmake_path else "cmake")
 
         # Prepare for the build
         build_info = prepare_build(platform_name=parsed_args.platform_name,
                                    base_folder=parsed_args.base_path,
                                    build_folder=parsed_args.build_path,
-                                   package_root_folder=parsed_args.package_root,
+                                   package_root_folder=resolved_package_root,
                                    cmake_command=cmake_path,
                                    build_config_file=parsed_args.build_config_file,
                                    clean=parsed_args.clean,

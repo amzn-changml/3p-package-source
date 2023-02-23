@@ -6,72 +6,92 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 #
 
-if ! dpkg-query -W -f'${Status}' "zlib1g-dev" 2>/dev/null | grep -q "ok installed"
-then
-    echo "Required package zlib1g-dev is not installed"
-    exit 1 
-fi
+# Read the Ubuntu and OpenSSL version from the command line
+UBUNTU_VERSION=$1
+OPENSSL_MAJOR_VERSION=$2
 
-if ! dpkg-query -W -f'${Status}' "libssl-dev" 2>/dev/null | grep -q "ok installed"
+if [ "$UBUNTU_VERSION" == "2004" ]
 then
-    echo "Required package libssl-dev is not installed"
+    echo "Preparing Docker Build based on Ubuntu 20.04 LTS"
+elif [ "$UBUNTU_VERSION" == "2204" ]
+then
+    echo "Preparing Docker Build based on Ubuntu 22.04 LTS"
+else
+    echo "Unsupported Ubuntu Version: $UBUNTU_VERSION"
     exit 1
 fi
 
-if ! dpkg-query -W -f'${Status}' "libcurl4-openssl-dev" 2>/dev/null | grep -q "ok installed"
+if [ "$OPENSSL_MAJOR_VERSION" == "1" ]
 then
-    echo "Required package libcurl4-openssl-dev is not installed"
+    echo "Build based on OpenSSL 1.1.1"
+elif [ "$OPENSSL_MAJOR_VERSION" == "3" ]
+then
+    echo "Build based on OpenSSL 3.0"
+else
+    echo "Unsupported OpenSSL Major Version: $OPENSSL_MAJOR_VERSION"
     exit 1
 fi
 
-src_path=temp/src
-bld_path=temp/build
-inst_path=temp/install
+# Make sure docker is installed
+DOCKER_VERSION=$(docker --version)
+if [ $? -ne 0 ]
+then
+    echo "Required package docker is not installed"
+    exit 1
+fi
+echo "Detected Docker Version $DOCKER_VERSION"
 
-echo "Command: rm -rf $inst_path"
-rm -rf $inst_path || (echo "Command: rm -rf $inst_path failed" ; exit 1)
+# Prepare the docker file and use the temp folder as the context root
+cp Dockerfile.ubuntu.${UBUNTU_VERSION} temp/Dockerfile
+cp docker_build_aws_sdk.sh temp/
 
-configure_and_build() {
-    build_type=$1
-    lib_type=$2
-    build_shared=OFF
-    if [ "$lib_type" == "Shared" ]
-    then
-        build_shared=ON
-    fi
 
-    echo "CMake Configure $build_type $lib_type"
-    CC=/usr/lib/llvm-12/bin/clang CXX=/usr/lib/llvm-12/bin/clang++ cmake -S "$src_path" -B "$bld_path/${build_type}_${lib_type}" \
-          -G "Unix Makefiles" \
-          -DTARGET_ARCH=LINUX \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DCPP_STANDARD=17 \
-          -DCMAKE_C_FLAGS="-fPIC" \
-          -DCMAKE_CXX_FLAGS="-fPIC" \
-          -DENABLE_TESTING=OFF \
-          -DENABLE_RTTI=ON \
-          -DCUSTOM_MEMORY_MANAGEMENT=ON \
-          -DBUILD_ONLY="access-management;cognito-identity;cognito-idp;core;devicefarm;dynamodb;gamelift;identity-management;kinesis;lambda;mobileanalytics;queues;s3;sns;sqs;sts;transfer" \
-          -DBUILD_SHARED_LIBS=$build_shared \
-          -DCMAKE_BUILD_TYPE=$build_type \
-          -DCMAKE_INSTALL_BINDIR="bin" \
-          -DCMAKE_INSTALL_LIBDIR="lib" || (echo "CMake Configure $build_type $lib_type failed" ; exit 1)
+pushd temp
 
-    echo "CMake Build $build_type $lib_type to $bld_path/${build_type}_${lib_type}"
-    cmake --build "$bld_path/${build_type}_${lib_type}" --config $build_type -j 12 || (echo "CMake Build $build_type $lib_type to $bld_path/${build_type}_${lib_type} failed" ; exit 1)
-}
 
-# Debug Shared
-configure_and_build Debug Shared || exit 1
+# Build the Docker Image
+echo "Building the docker build script"
+DOCKER_IMAGE_NAME=aws_native_sdk_ubuntu_${UBUNTU_VERSION}_openssl1
+docker build -t ${DOCKER_IMAGE_NAME}:latest . || (echo "Error occurred creating Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
 
-# Debug Static
-configure_and_build Debug Static || exit 1
+# Capture the Docker Image ID
+IMAGE_ID=$(docker images -q ${DOCKER_IMAGE_NAME}:latest)
+if [ -z $IMAGE_ID ]
+then
+    echo "Error: Cannot find Image ID for ${DOCKER_IMAGE_NAME}"
+    exit 1
+fi
 
-# Release Shared
-configure_and_build Release Shared || exit 1
+# Run the Docker Image
+echo "Running docker build script"
+docker run --tty ${DOCKER_IMAGE_NAME}:latest ./docker_build_aws_sdk.sh $OPENSSL_MAJOR_VERSION || (echo "Error occurred running Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
 
-# Release Static
-configure_and_build Release Static || exit 1
+echo "Capturing the Container ID"
+CONTAINER_ID=$(docker container ls -l -q --filter "ancestor=${DOCKER_IMAGE_NAME}:latest")
+if [ -z $CONTAINER_ID ]
+then
+    echo "Error: Cannot find Container ID for Image ${DOCKER_IMAGE_NAME}"
+    exit 1
+fi
 
-echo "Custom Build for AWSNativeSDK finished successfully"
+# Copy the build artifacts from the Docker Container
+echo "Copying the built contents from the docker container for image ${DOCKER_IMAGE_NAME}"
+
+rm -rf install
+mkdir install
+
+docker cp $CONTAINER_ID:/data/workspace/install/Debug_Static install/ || (echo "Error occurred copying Debug_Static artifacts from Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
+docker cp $CONTAINER_ID:/data/workspace/install/Debug_Shared install/ || (echo "Error occurred copying Debug_Shared artifacts from Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
+docker cp $CONTAINER_ID:/data/workspace/install/Release_Static install/ || (echo "Error occurred copying Release_Static artifacts from Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
+docker cp $CONTAINER_ID:/data/workspace/install/Release_Shared install/ || (echo "Error occurred copying Release_Shared artifacts from Docker image ${DOCKER_IMAGE_NAME}:latest." ; exit 1)
+
+# Clean up the docker image and container
+echo "Cleaning up containers"
+docker container rm $CONTAINER_ID || (echo "Error occurred trying to clean up container for image ${DOCKER_IMAGE_NAME}")
+
+echo "Cleaning up image"
+docker rmi $IMAGE_ID  || (echo "Error occurred trying to clean up image ${DOCKER_IMAGE_NAME}")
+
+popd
+
 exit 0
