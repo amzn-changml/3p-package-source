@@ -31,6 +31,22 @@ jobs:
       contents: write
     
     steps:
+      - name: Create Windows binary folders
+        if: matrix.os == 'windows'
+        run: |
+          New-Item "c:\packages" -ItemType 'Directory' -Force
+          New-Item -ItemType SymbolicLink -Name .\3p-package-source\packages -Target c:\packages -Force}
+      
+      - name: Maximize Linux build space
+        if: matrix.os == 'ubuntu'
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 512
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-android: 'true'  
+    
       - name: Checkout 3p scripts repo
         uses: actions/checkout@v3
         with:
@@ -51,23 +67,7 @@ jobs:
         run: |
           python3 -m pip install -r 3p-package-scripts/requirements.txt
           git config --global user.email "o3de@o3de.org"
-          git config --global user.name "O3DF"
-      
-      - name: Create Windows binary folders
-        if: matrix.os == 'windows'
-        run: |
-          New-Item "c:\packages" -ItemType 'Directory' -Force
-          New-Item -ItemType SymbolicLink -Name .\3p-package-source\packages -Target c:\packages -Force}
-      
-      - name: Maximize Linux build space
-        if: matrix.os == 'ubuntu'
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 7168
-          swap-size-mb: 512
-          remove-dotnet: 'true'
-          remove-haskell: 'true'
-          remove-android: 'true'     
+          git config --global user.name "O3DF"   
           
       - name: Run build script
         run: >
