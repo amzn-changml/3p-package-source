@@ -20,7 +20,7 @@ run-name: Create package files
 
 jobs: 
   Scan:
-    name: Build packages for each platform
+    name: Build packages
     strategy:
       matrix:
         os: [windows, ubuntu, macos]
@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
           path: 3p-package-scripts
       
-      - name: Checkout 3P packages repo
+      - name: Checkout 3p packages repo
         uses: actions/checkout@v3
         with: 
           ref: main
@@ -48,7 +48,7 @@ jobs:
           
       - name: Run build script
         run: >
-          python3 3p-package-scripts/Scripts/build_all_packages.py
+          python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
           --server_urls https://d3t6xeg4fgfoum.cloudfront.net
           --search_path 3p-package-source/package-system
       
