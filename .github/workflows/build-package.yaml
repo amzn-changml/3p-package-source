@@ -1,0 +1,60 @@
+# This automation creates 3p packages and saves it to the Github Actions cache
+
+name: Build 3p packages
+
+on:
+  # Allows you to run this workflow manually from the Actions tag
+  workflow_dispatch:
+    inputs:
+      organization:
+        description: 'The org/user of the repo'
+        required: true
+        type: string
+        default: "o3de"
+      repository:
+        description: 'The repo to pull additional licenses'
+        required: false
+        type: string
+        
+run-name: Create package files
+
+jobs: 
+  Scan:
+    name: Build packages for each platform
+    strategy:
+      matrix:
+        os: [windows, ubuntu, macos]
+    runs-on: ${{ matrix.os }}-latest
+    environment: ${{ github.ref_name }} # Check environment against branch
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout 3p scripts repo
+        uses: actions/checkout@v3
+        with:
+          repository: o3de/3p-package-scripts
+          ref: main
+          fetch-depth: 0
+          path: 3p-package-scripts
+      
+      - name: Checkout 3P packages repo
+        uses: actions/checkout@v3
+        with: 
+          ref: main
+          fetch-depth: 0
+          path: 3p-package-source
+          
+      - name: Run build script
+        run: >
+          python3 3p-package-scripts/Scripts/build_all_packages.py
+          --server_urls https://d3t6xeg4fgfoum.cloudfront.net
+          --search_path 3p-package-source/package-system
+      
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-packages
+          path: |
+            3p-package-source/package-system/**/packages/*
