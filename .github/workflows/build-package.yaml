@@ -46,6 +46,11 @@ jobs:
           fetch-depth: 0
           path: 3p-package-source
           
+      - name: Setup environment
+        shell: bash
+        run: |
+          python3 -m pip install -r 3p-package-scripts/requirements.txt
+          
       - name: Run build script
         run: >
           python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
