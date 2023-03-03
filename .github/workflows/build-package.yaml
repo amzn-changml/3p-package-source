@@ -52,6 +52,22 @@ jobs:
           python3 -m pip install -r 3p-package-scripts/requirements.txt
           git config --global user.email "o3de@o3de.org"
           git config --global user.name "O3DF"
+      
+      - name: Create Windows binary folders
+        if: ${{ matrix.os }} == "windows"
+        run: |
+          New-Item "c:\packages" -ItemType 'Directory' -Force
+          New-Item -ItemType SymbolicLink -Name .\3p-package-source\packages -Target c:\packages -Force}
+      
+      - name: Maximize Linux build space
+        if: ${{ matrix.os }} == "ubuntu"
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 7168
+          swap-size-mb: 512
+          remove-dotnet: 'true'
+          remove-haskell: 'true'
+          remove-android: 'true'     
           
       - name: Run build script
         run: >
@@ -64,4 +80,4 @@ jobs:
         with:
           name: ${{ matrix.os }}-packages
           path: |
-            3p-package-source/package-system/packages/*
+            3p-package-source/packages/*
