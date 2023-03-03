@@ -50,6 +50,8 @@ jobs:
         shell: bash
         run: |
           python3 -m pip install -r 3p-package-scripts/requirements.txt
+          git config --global user.email "o3de@o3de.org"
+          git config --global user.name "O3DF"
           
       - name: Run build script
         run: >
