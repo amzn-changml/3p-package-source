@@ -70,10 +70,18 @@ jobs:
           git config --global user.name "O3DF"   
           
       - name: Run build script
-        run: >
-          python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
-          --server_urls https://canonical.o3de.org/
-          --search_path 3p-package-source
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
+            --server_urls https://canonical.o3de.org/
+            --search_path 3p-package-source
+            --output_folder 3p-package-source\packages\
+          else
+            python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
+            --server_urls https://canonical.o3de.org/
+            --search_path 3p-package-source
+          fi
       
       - name: Save artifacts
         uses: actions/upload-artifact@v3
