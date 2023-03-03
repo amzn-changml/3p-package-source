@@ -54,13 +54,13 @@ jobs:
           git config --global user.name "O3DF"
       
       - name: Create Windows binary folders
-        if: ${{ matrix.os }} == "windows"
+        if: matrix.os == 'windows'
         run: |
           New-Item "c:\packages" -ItemType 'Directory' -Force
           New-Item -ItemType SymbolicLink -Name .\3p-package-source\packages -Target c:\packages -Force}
       
       - name: Maximize Linux build space
-        if: ${{ matrix.os }} == "ubuntu"
+        if: matrix.os == 'ubuntu'
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 7168
