@@ -35,7 +35,6 @@ jobs:
         if: matrix.os == 'windows'
         run: |
           New-Item c:\packages -ItemType 'Directory' -Force
-          New-Item 3p-package-source\packages -ItemType 'Directory' -Force
           New-Item -ItemType SymbolicLink -Name 3p-package-source\packages -Target c:\packages -Force
       
       - name: Maximize Linux build space
