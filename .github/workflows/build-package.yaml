@@ -76,7 +76,7 @@ jobs:
             python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
             --server_urls https://canonical.o3de.org/
             --search_path 3p-package-source
-            --output_folder 3p-package-source\packages\
+            --output_folder 3p-package-source/packages/
           else
             python3 3p-package-scripts/o3de_package_scripts/build_all_packages.py
             --server_urls https://canonical.o3de.org/
