@@ -34,6 +34,10 @@ jobs:
       id: detect-platform
       run: |
         CHANGED_FILES=$(git diff ${{ github.event.before }} --name-only)
+        if [ -z $CHANGED_FILES ]; do
+          echo "No changes detected"
+          gh run cancel ${{ github.run_id }}
+        fi
         for FILE in $CHANGED_FILES; do
           if [[ $FILE == package_build_list_host_* ]]; then
             PLATFORM=$(echo $FILE | sed -n 's/package_build_list_host_\(.*\).json/\1/p')
@@ -65,6 +69,7 @@ jobs:
       matrix:
         os: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
+      
     - name: Checkout 3P source repo
       uses: actions/checkout@v3
 
