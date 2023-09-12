@@ -1,0 +1,20 @@
+# This automation creates 3p packages and saves it to the Github Actions cache
+
+name: Build 3p packages
+
+on:
+  # Allows you to run this workflow manually from the Actions tag
+  workflow_dispatch:
+    inputs:
+      organization:
+        description: 'The org/user of the repo'
+        required: true
+        type: string
+        default: "o3de"
+      repository:
+        description: 'The repo to pull additional licenses'
+        required: false
+        type: string
+        
+          
+      
