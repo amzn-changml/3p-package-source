@@ -15,6 +15,65 @@ on:
         description: 'The repo to pull additional licenses'
         required: false
         type: string
-        
+
+  pull_request:
+    paths:
+      - 'package_build_list_host_*.json'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      command: ${{ steps.detect-platform.outputs.command }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install jq
+      run: sudo apt-get install jq
+
+    - name: Detect platform and command from JSON changes
+      id: detect-platform
+      run: |
+        CHANGED_FILES=$(git diff ${{ github.event.before }} --name-only)
+        for FILE in $CHANGED_FILES; do
+          if [[ $FILE == package_build_list_host_* ]]; then
+            PLATFORM=$(echo $FILE | sed -n 's/package_build_list_host_\(.*\).json/\1/p')
+            case $PLATFORM in
+              linux)
+                OS_RUNNER="ubuntu-latest"
+                ;;
+              windows)
+                OS_RUNNER="windows-latest"
+                ;;
+              mac)
+                OS_RUNNER="macos-latest"
+                ;;
+              *)
+                OS_RUNNER="ubuntu-latest" # default
+                ;;
+            esac
+            COMMAND=$(jq -r '.build_from_source | to_entries[] | select(.key | test(".*-.*-.*")) | .value' $FILE)
+            echo "::set-output name=matrix::[\"$OS_RUNNER\"]"
+            echo "::set-output name=command::$COMMAND"
+            break
+          fi
+        done
+
+  run-on-specific-os:
+    needs: detect-changes
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Run detected command
+      run: |
+        ${{ needs.detect-changes.outputs.command }}
           
       
