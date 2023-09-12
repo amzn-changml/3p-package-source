@@ -34,7 +34,7 @@ jobs:
       id: detect-platform
       run: |
         CHANGED_FILES=$(git diff ${{ github.event.before }} --name-only)
-        if [ -z $CHANGED_FILES ]; do
+        if [ -z $CHANGED_FILES ]; then
           echo "No changes detected"
           gh run cancel ${{ github.run_id }}
         fi
