@@ -1,20 +1,19 @@
-# This automation creates 3p packages and saves it to the Github Actions cache
+# This automation builds 3p packages based on a PR or manually run
 
-name: Build 3p packages
+name: Build 3P Packages PR
 
 on:
   # Allows you to run this workflow manually from the Actions tag
   workflow_dispatch:
     inputs:
-      organization:
-        description: 'The org/user of the repo'
-        required: true
-        type: string
-        default: "o3de"
-      repository:
-        description: 'The repo to pull additional licenses'
-        required: false
-        type: string
+      build_path:
+        description: 'The json file to build'
+        type: choice
+        options: 
+        - "package_build_list_host_windows.json"
+        - "package_build_list_host_linux.json"
+        - "package_build_list_host_linux-aarch64.json"
+        - "package_build_list_host_darwin.json"
 
   pull_request:
     paths:
@@ -28,11 +27,8 @@ jobs:
       command: ${{ steps.detect-platform.outputs.command }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Install jq
-      run: sudo apt-get install jq
+    - name: Checkout 3P source repo
+      uses: actions/checkout@v3
 
     - name: Detect platform and command from JSON changes
       id: detect-platform
@@ -48,11 +44,11 @@ jobs:
               windows)
                 OS_RUNNER="windows-latest"
                 ;;
-              mac)
+              darwin)
                 OS_RUNNER="macos-latest"
                 ;;
               *)
-                OS_RUNNER="ubuntu-latest" # default
+                OS_RUNNER="windows-latest" # default
                 ;;
             esac
             COMMAND=$(jq -r '.build_from_source | to_entries[] | select(.key | test(".*-.*-.*")) | .value' $FILE)
@@ -69,8 +65,8 @@ jobs:
       matrix:
         os: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - name: Checkout 3P source repo
+      uses: actions/checkout@v3
 
     - name: Run detected command
       run: |
