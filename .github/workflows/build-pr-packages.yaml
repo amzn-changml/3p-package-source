@@ -19,6 +19,9 @@ on:
     paths:
       - 'package_build_list_host_*.json'
 
+permissions:
+  actions: 'write'
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -37,6 +40,7 @@ jobs:
         if [ -z $CHANGED_FILES ]; then
           echo "No changes detected"
           gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
         fi
         for FILE in $CHANGED_FILES; do
           if [[ $FILE == package_build_list_host_* ]]; then
@@ -61,6 +65,8 @@ jobs:
             break
           fi
         done
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   run-on-specific-os:
     needs: detect-changes
