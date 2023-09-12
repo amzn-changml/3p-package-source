@@ -39,8 +39,6 @@ jobs:
         CHANGED_FILES=$(git diff ${{ github.event.before }} --name-only)
         if [ -z $CHANGED_FILES ]; then
           echo "No changes detected"
-          gh run cancel ${{ github.run_id }}
-          gh run watch ${{ github.run_id }}
         fi
         for FILE in $CHANGED_FILES; do
           if [[ $FILE == package_build_list_host_* ]]; then
