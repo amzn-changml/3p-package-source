@@ -62,7 +62,7 @@ jobs:
             
             
             JSON="{\"include\":["
-            JSONline="(\"package\":\"$PACKAGE"\, \"command\": \"$COMMAND"\, \"os\": \"$OS_RUNNER"\)
+            JSONline="{\"package\": \"$PACKAGE"\, \"command\": \"$COMMAND"\, \"os\": \"$OS_RUNNER"\},"
             if [[ "$JSON" != *"$JSONline"* ]]; then
               JSON="$JSON$JSONline"
             fi
