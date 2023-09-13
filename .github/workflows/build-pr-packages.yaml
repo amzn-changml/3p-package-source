@@ -36,7 +36,7 @@ jobs:
     - name: Detect platform and command from JSON changes
       id: detect-platform
       run: |
-        CHANGED_FILES=$(git diff ${{ github.event.before }} --name-only)
+        CHANGED_FILES=$(git diff main... --name-only)
         if [ -z $CHANGED_FILES ]; then
           echo "No changes detected"
         fi
@@ -57,14 +57,12 @@ jobs:
                 OS_RUNNER="windows-latest" # default
                 ;;
             esac
-            COMMAND=$(jq -r '.build_from_source | to_entries[] | select(.key | test(".*-.*-.*")) | .value' $FILE)
+            COMMAND=$(git diff main... --no-ext-diff --unified=0 --exit-code -a --no-prefix | egrep "^\+" | grep Scripts | cut -d'"' -f4)
             echo "::set-output name=matrix::[\"$OS_RUNNER\"]"
             echo "::set-output name=command::$COMMAND"
             break
           fi
         done
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   run-on-specific-os:
     needs: detect-changes
