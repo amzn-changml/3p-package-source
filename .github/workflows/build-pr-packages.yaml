@@ -32,6 +32,8 @@ jobs:
     steps:
     - name: Checkout 3P source repo
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 10
 
     - name: Detect platform and command from JSON changes
       id: detect-platform
