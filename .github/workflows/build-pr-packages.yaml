@@ -59,25 +59,25 @@ jobs:
             DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix | egrep "^\+" | grep Scripts)
             PACKAGE=$(echo $DIFF | cut -d'"' -f2)
             COMMAND=$(echo $DIFF | cut -d'"' -f4)
-            
-            
+
+            # Add build to the matrix only if it is not already included
             JSON="{\"include\":["
             JSONline="{\"package\": \"$PACKAGE"\, \"command\": \"$COMMAND"\, \"os\": \"$OS_RUNNER"\},"
             if [[ "$JSON" != *"$JSONline"* ]]; then
               JSON="$JSON$JSONline"
             fi
-
-            # Remove last "," and add closing brackets
-            if [[ $JSON == *, ]]; then
-              JSON="${JSON%?}"
-            fi
-            JSON="$JSON]}"
-            echo $JSON
-  
-            # Set output
-            echo "matrix=$( echo "$JSON" )" >> $GITHUB_OUTPUT
           fi
         done
+
+        # Remove last "," and add closing brackets
+        if [[ $JSON == *, ]]; then
+          JSON="${JSON%?}"
+        fi
+        JSON="$JSON]}"
+        echo $JSON
+
+        # Set output
+        echo "matrix=$( echo "$JSON" )" >> $GITHUB_OUTPUT
 
   run-on-specific-os:
     name: Build "${{ matrix.package }}" on "${{ matrix.os }}"
