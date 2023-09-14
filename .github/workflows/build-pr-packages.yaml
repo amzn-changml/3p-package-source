@@ -91,6 +91,6 @@ jobs:
 
     - name: Run build command
       run: |
-        python ${{ matrix.command }}
+        python3 ${{ matrix.command }}
           
       
