@@ -81,6 +81,7 @@ jobs:
     name: Build "${{ matrix.package }}" on "${{ matrix.os }}"
     needs: detect-changes
     strategy:
+      fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     runs-on: ${{ matrix.os }}
     
