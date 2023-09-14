@@ -97,13 +97,15 @@ jobs:
         repository: o3de/3p-package-scripts
         path: 3p-package-scripts
       
-    - name: Install dependancies
+    - name: Install python dependancies
       run: |
-        python -m pip install boto3
+        python3 -m pip install boto3 certifi
+    
+    - name: Update cmake/ninja
+      uses: lukka/get-cmake@latest 
 
     - name: Run build command
       run: |
-        cat 3p-package-source/package_build_list_host_*.json
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
           
       
