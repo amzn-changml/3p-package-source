@@ -39,34 +39,37 @@ jobs:
       id: detect-platform
       run: |
         CHANGED_FILES=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --name-only)
+        JSON="{\"include\":["
         for FILE in $CHANGED_FILES; do
-          if [[ $FILE == package_build_list_host_* ]]; then
-            PLATFORM=$(echo $FILE | sed -n 's/package_build_list_host_\(.*\).json/\1/p')
-            case $PLATFORM in
-              linux)
-                OS_RUNNER="ubuntu-latest"
-                ;;
-              windows)
-                OS_RUNNER="windows-latest"
-                ;;
-              darwin)
-                OS_RUNNER="macos-latest"
-                ;;
-              *)
-                OS_RUNNER="windows-latest" # default
-                ;;
-            esac
-            DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix | egrep "^\+" | grep Scripts)
-            PACKAGE=$(echo $DIFF | cut -d'"' -f2)
-            COMMAND=$(echo $DIFF | cut -d'"' -f4)
-
-            # Add build to the matrix only if it is not already included
-            JSON="{\"include\":["
-            JSONline="{\"package\": \"$PACKAGE"\, \"command\": \"$COMMAND"\, \"os\": \"$OS_RUNNER"\},"
-            if [[ "$JSON" != *"$JSONline"* ]]; then
-              JSON="$JSON$JSONline"
-            fi
-          fi
+        	echo $FILE
+        	if [[ $FILE == package_build_list_host_* ]]; then
+        		PLATFORM=$(echo $FILE | sed -n 's/package_build_list_host_\(.*\).json/\1/p')
+        		case $PLATFORM in
+        		linux*)
+        			OS_RUNNER="ubuntu-latest"
+        			;;
+        		windows)
+        			OS_RUNNER="windows-latest"
+        			;;
+        		darwin)
+        			OS_RUNNER="macos-latest"
+        			;;
+        		*)
+        			OS_RUNNER="windows-latest" # default
+        			;;
+        		esac
+        
+        		DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix -- $FILE | egrep "^\+" | grep Scripts)
+        		echo $DIFF
+        		PACKAGE=$(echo $DIFF | cut -d'"' -f2)
+        		COMMAND=$(echo $DIFF | cut -d'"' -f4)
+        
+        		JSONline="{\"package\": \"$PACKAGE\", \"command\": \"$COMMAND\", \"os\": \"$OS_RUNNER\"},"
+        		echo $JSONline
+        		if [[ "$JSON" != *"$JSONline"* ]]; then
+        			JSON="$JSON$JSONline"
+        		fi
+        	fi
         done
 
         # Remove last "," and add closing brackets
