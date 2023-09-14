@@ -30,7 +30,7 @@ jobs:
     
     steps:
     - name: Checkout 3P source repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 10
 
@@ -87,10 +87,22 @@ jobs:
     
     steps:
     - name: Checkout 3P source repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        path: 3p-package-source
+    
+    - name: Checkout 3P scripts repo
+      uses: actions/checkout@v4
+      with:
+        repository: o3de/3p-package-scripts
+        path: 3p-package-scripts
+      
+    - name: Install dependancies
+      run: |
+            python -m pip install boto3
 
     - name: Run build command
       run: |
-        python3 ${{ matrix.command }}
+        python3 3p-package-scripts/Scripts/build_package.py --search_path 3p-package-source/package-sources ${{ matrix.package }}
           
       
