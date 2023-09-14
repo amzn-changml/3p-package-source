@@ -104,6 +104,10 @@ jobs:
     - name: Update cmake/ninja
       uses: lukka/get-cmake@latest 
 
+    - name: Update msbuild path
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1.12.0
+
     - name: Run build command
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
