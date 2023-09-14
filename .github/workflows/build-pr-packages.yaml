@@ -59,9 +59,8 @@ jobs:
         
         		DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix -- $FILE | egrep "^\+" | grep Scripts)
         		PACKAGE=$(echo $DIFF | cut -d'"' -f2)
-        		COMMAND=$(echo $DIFF | cut -d'"' -f4)
         
-        		JSONline="{\"package\": \"$PACKAGE\", \"command\": \"$COMMAND\", \"os\": \"$OS_RUNNER\"},"
+        		JSONline="{\"package\": \"$PACKAGE\", \"os\": \"$OS_RUNNER\"},"
         		if [[ "$JSON" != *"$JSONline"* ]]; then
         			JSON="$JSON$JSONline"
         		fi
@@ -103,6 +102,6 @@ jobs:
 
     - name: Run build command
       run: |
-        python3 3p-package-scripts/Scripts/build_package.py --search_path 3p-package-source/package-sources ${{ matrix.package }}
+        python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source/package-sources ${{ matrix.package }}
           
       
