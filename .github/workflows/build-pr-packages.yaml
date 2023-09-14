@@ -103,6 +103,7 @@ jobs:
 
     - name: Run build command
       run: |
+        cat 3p-package-source/package_build_list_host_*.json
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
           
       
