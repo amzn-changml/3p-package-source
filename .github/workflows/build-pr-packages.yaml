@@ -129,9 +129,9 @@ jobs:
         setup: |
           mkdir -p "3p-package-source/packages"
         dockerRunArgs: |
-          --volume "3p-package-scripts:/3p-package-scripts
-          --volume "3p-package-source:/3p-package-source
-          --volume "3p-package-source/packages:/packages"
+          --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
+          --volume "${PWD}/3p-package-source:/3p-package-source"
+          --volume "${PWD}/3p-package-source/packages:/packages"
         shell: /bin/sh
         install: |
           apt-get update
