@@ -123,9 +123,10 @@ jobs:
       if: contains(matrix.package, 'aarch64')
       uses: uraimo/run-on-arch-action@v2
       with:
-        arch: aarch64
-        distro: ubuntu_latest
+        arch: none
+        distro: none
         githubToken: ${{ github.token }}
+        base_image: --platform=linux/arm64 ubuntu:22.04
         setup: |
           mkdir -p "3p-package-source/packages"
         dockerRunArgs: |
