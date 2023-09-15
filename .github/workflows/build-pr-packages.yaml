@@ -79,7 +79,7 @@ jobs:
         echo "matrix=$( echo "$JSON" )" >> $GITHUB_OUTPUT
 
   build-on-specific-os:
-    name: Build "${{ matrix.os }}" for "${{ matrix.package }}"
+    name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
     needs: detect-changes
     strategy:
       fail-fast: false
@@ -118,8 +118,8 @@ jobs:
     - name: Restore build artifacts
       uses: actions/cache/restore@v3
       with:
-        path: 3p-package-scripts/package-system/**/temp
-        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
+        path: 3p-package-source/package-system/**/temp
+        key: ${{ matrix.package }}-${{ matrix.os }}
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -155,7 +155,7 @@ jobs:
       uses: actions/cache/save@v3
       if: always()
       with:
-        path: 3p-package-scripts/package-system/**/temp/*
+        path: 3p-package-source/package-system/**/temp/*
         key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
       
     - name: Upload packages
@@ -213,7 +213,7 @@ jobs:
            
       - name: Sync to S3
         run: |
-           aws s3 sync . s3://${{ secrets.AWS_PACKAGE_S3_BUCKET }}
+           aws s3 cp . ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ --recursive --exclude "*" --include "${{ matrix.package }}*" --acl bucket-owner-full-control
         
   deploy-prod:
     runs-on: ubuntu-latest
@@ -237,4 +237,4 @@ jobs:
            
       - name: Sync to S3
         run: |
-           aws s3 sync ${{ matrix.package }}/ s3://${{ secrets.AWS_PACKAGE_S3_BUCKET }}
+           aws s3 cp ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ ${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }} --recursive --exclude "*" --include "${{ matrix.package }}*" --acl bucket-owner-full-control
