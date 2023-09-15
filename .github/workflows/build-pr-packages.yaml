@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   detect-changes:
+    name: Detecting changes in PR to build
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.detect-platform.outputs.matrix }}
@@ -32,8 +33,8 @@ jobs:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
-        fetch-depth: 10
-
+        fetch-depth: 1
+          
     - name: Detect platform and command from JSON changes
       id: detect-platform
       run: |
@@ -77,8 +78,8 @@ jobs:
         # Set output
         echo "matrix=$( echo "$JSON" )" >> $GITHUB_OUTPUT
 
-  run-on-specific-os:
-    name: Build "${{ matrix.package }}" on "${{ matrix.os }}"
+  build-on-specific-os:
+    name: Build "${{ matrix.os }}" for "${{ matrix.package }}"
     needs: detect-changes
     strategy:
       fail-fast: false
@@ -114,6 +115,12 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
+    - name: Restore build artifacts
+      uses: actions/cache/restore@v3
+      with:
+        path: 3p-package-scripts/package-system/**/temp
+        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
+        
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
       run: |
@@ -134,15 +141,100 @@ jobs:
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
           --volume "${PWD}/3p-package-source/packages:/packages"
-        shell: /bin/sh
+        shell: /bin/bash
         install: |
           apt-get update
           apt-get install -y build-essential cmake git libssl-dev libffi-dev ninja-build python3 python3-pip software-properties-common
           python3 -m pip install boto3 certifi  
         run: |
-          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ --output_folder /packages ${{ matrix.package }}
-        
-    - uses: actions/upload-artifact@v3
+          # python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ --output_folder /packages ${{ matrix.package }}
+          lsb_release -a
+          uname -a
+
+    - name: Cache build artifacts
+      uses: actions/cache/save@v3
+      if: always()
       with:
-        name: packages
+        path: 3p-package-scripts/package-system/**/temp/*
+        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
+      
+    - name: Upload packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.package }}
         path: 3p-package-source/packages/*
+
+  validate-packages:
+    name: Validating ${{ matrix.package }}
+    runs-on: 'ubuntu-latest'
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.package }}
+          
+      - name: Verify SHA256
+        run: |
+          echo "$(cat ${{ matrix.package }}.tar.xz.content.SHA256SUMS) ${{ matrix.package }}.tar.xz" | sha256sum --check --status
+    
+      - name: Decompress package
+        run: |
+          tar -xvf ${{ matrix.package }}.tar.xz
+
+      - name: Malware scan
+        uses: dell/common-github-actions/malware-scanner@main
+        with:
+          directories: .
+          options: -ri
+          
+  deploy-dev:
+    name: Deploying ${{ matrix.package }} to dev S3 bucket
+    runs-on: ubuntu-latest
+    environment: development
+    needs: build-on-specific-os
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.package }}
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
+           
+      - name: Sync to S3
+        run: |
+           aws s3 sync . s3://${{ secrets.AWS_PACKAGE_S3_BUCKET }}
+        
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [build-on-specific-os, deploy-dev]
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.package }}
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
+           
+      - name: Sync to S3
+        run: |
+           aws s3 sync ${{ matrix.package }}/ s3://${{ secrets.AWS_PACKAGE_S3_BUCKET }}
