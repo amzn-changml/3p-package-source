@@ -166,7 +166,7 @@ jobs:
 
   validate-packages:
     name: Validating ${{ matrix.package }}
-    depends-on: build-on-specific-os
+    needs: [detect-changes, build-on-specific-os]
     runs-on: 'ubuntu-latest'
     strategy:
       fail-fast: false
@@ -194,8 +194,8 @@ jobs:
   deploy-dev:
     name: Deploying ${{ matrix.package }} to dev S3 bucket
     runs-on: ubuntu-latest
-    environment: development
-    needs: build-on-specific-os
+    environment: development 
+    needs: [detect-changes, build-on-specific-os]
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
@@ -219,7 +219,7 @@ jobs:
   deploy-prod:
     runs-on: ubuntu-latest
     environment: production
-    needs: [build-on-specific-os, deploy-dev]
+    needs: [detect-changes, build-on-specific-os, deploy-dev]
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
