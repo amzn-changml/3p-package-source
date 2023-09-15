@@ -107,6 +107,8 @@ jobs:
     - name: Update msbuild path
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1.12.0
+      with:
+        vsversion: 2019 
 
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -128,10 +130,12 @@ jobs:
           --volume "3p-package-source/packages:/packages"
         shell: /bin/sh
         install: |
-          python3 -m pip install boto3 certifi
-          apt-get install ninja
+          apt-get update
+          apt-get install -y build-essential libssl-dev libffi-dev ninja python3 python3-pip software-properties-common
+          python -m pip install boto3 certifi
+          
         run: |
-          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/package_build_list_host_linux-aarch64.json --output_folder /packages ${{ matrix.package }}
+          python /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/package_build_list_host_linux-aarch64.json --output_folder /packages ${{ matrix.package }}
         
     - uses: actions/upload-artifact@v3
       with:
