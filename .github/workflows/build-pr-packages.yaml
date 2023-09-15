@@ -97,6 +97,12 @@ jobs:
         repository: o3de/3p-package-scripts
         path: 3p-package-scripts
       
+    - name: Update python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: 'pip' # caching pip dependencies
+    
     - name: Install python dependancies
       run: |
         python3 -m pip install boto3 certifi
@@ -130,10 +136,10 @@ jobs:
         install: |
           apt-get update
           apt-get install -y build-essential libssl-dev libffi-dev ninja-build python3 python3-pip software-properties-common
-          python -m pip install boto3 certifi
+          python3 -m pip install boto3 certifi
           
         run: |
-          python /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/package_build_list_host_linux-aarch64.json --output_folder /packages ${{ matrix.package }}
+          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/package_build_list_host_linux-aarch64.json --output_folder /packages ${{ matrix.package }}
         
     - uses: actions/upload-artifact@v3
       with:
