@@ -129,6 +129,7 @@ jobs:
         base_image: --platform=linux/arm64 ubuntu:22.04
         setup: |
           mkdir -p "3p-package-source/packages"
+          rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
@@ -137,10 +138,9 @@ jobs:
         install: |
           apt-get update
           apt-get install -y build-essential libssl-dev libffi-dev ninja-build python3 python3-pip software-properties-common
-          python3 -m pip install boto3 certifi
-          
+          python3 -m pip install boto3 certifi  
         run: |
-          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/package_build_list_host_linux-aarch64.json --output_folder /packages ${{ matrix.package }}
+          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ --output_folder /packages ${{ matrix.package }}
         
     - uses: actions/upload-artifact@v3
       with:
