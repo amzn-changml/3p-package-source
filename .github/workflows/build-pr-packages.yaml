@@ -109,12 +109,12 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
     - name: Run build command
-      if: ${{ !contains("${{ matrix.package }}", "aarch64") }}
+      if: ${{ !contains(matrix.package, 'aarch64') }}
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
 
     - name: Run build command (aarch64)
-      if: contains("${{ matrix.package }}", "aarch64")
+      if: contains(matrix.package, 'aarch64')
       uses: uraimo/run-on-arch-action@v2
       with:
         arch: aarch64
