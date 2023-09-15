@@ -109,19 +109,19 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
     - name: Run build command
-      if: ${{ !contains(${{ matrix.package }}, 'aarch64') }}
+      if: ${{ !contains("${{ matrix.package }}", "aarch64") }}
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
 
     - name: Run build command (aarch64)
-      if: contains(${{ matrix.package }}, 'aarch64')
+      if: contains("${{ matrix.package }}", "aarch64")
       uses: uraimo/run-on-arch-action@v2
       with:
         arch: aarch64
         distro: ubuntu_latest
         githubToken: ${{ github.token }}
         setup: |
-          mkdir -p "${PWD}/3p-package-source/packages"
+          mkdir -p "3p-package-source/packages"
         dockerRunArgs: |
           --volume "3p-package-scripts:/3p-package-scripts
           --volume "3p-package-source:/3p-package-source
