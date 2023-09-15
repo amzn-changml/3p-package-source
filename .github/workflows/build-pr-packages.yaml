@@ -166,6 +166,7 @@ jobs:
 
   validate-packages:
     name: Validating ${{ matrix.package }}
+    depends-on: build-on-specific-os
     runs-on: 'ubuntu-latest'
     strategy:
       fail-fast: false
