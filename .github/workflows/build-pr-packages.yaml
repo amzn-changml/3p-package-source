@@ -19,11 +19,6 @@ on:
     paths:
       - 'package_build_list_host_*.json'
 
-permissions:
-  contents: write
-  # We use ghcr.io to store the docker image cache for ARM builds
-  packages: write
-
 jobs:
   detect-changes:
     name: Detecting changes in PR to build
@@ -83,7 +78,10 @@ jobs:
   build-on-specific-os:
     name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
     needs: detect-changes
-    permissions: write-all
+    permissions:
+      contents: read
+      # We use ghcr.io to store the docker image cache for ARM builds
+      packages: write
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
@@ -118,17 +116,19 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
-    - name: Cache build artifacts
-      uses: actions/cache@v3
+    - name: Use ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       if: always()
       with:
-        path: 3p-package-source/package-system/**/temp
-        key: ${{ matrix.package }}
-        restore-keys: |
-          ${{ matrix.package }}-
+        variant: sccache
+        max-size: 2048M
+        key: ${{ matrix.package }}-ccache
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
+      env:
+        CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        CMAKE_C_COMPILER_LAUNCHER: ccache
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
 
