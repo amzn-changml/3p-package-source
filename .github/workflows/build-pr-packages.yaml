@@ -119,7 +119,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: 3p-package-source/package-system/**/temp
-        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
+        key: ${{ matrix.package }}-${{ matrix.os }}
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -156,7 +156,7 @@ jobs:
       if: always()
       with:
         path: 3p-package-source/package-system/**/temp/*
-        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
+        key: ${{ matrix.package }}-${{ matrix.os }}
       
     - name: Upload packages
       uses: actions/upload-artifact@v3
