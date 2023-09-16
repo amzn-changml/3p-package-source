@@ -125,6 +125,7 @@ jobs:
         path: 3p-package-source/package-system/**/temp
         key: ${{ matrix.package }}-${{ matrix.os }}
         restore-keys: |
+          ${{ matrix.package }}-${{ matrix.os }}
           ${{ matrix.package }}-${{ matrix.os }}-
         
     - name: Run build command
@@ -178,6 +179,7 @@ jobs:
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
       - name: Download packages
+        if: ${{ !contains(matrix.package, 'aarch64') }}
         uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.package }}
