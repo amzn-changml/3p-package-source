@@ -181,7 +181,7 @@ jobs:
           
       - name: Verify SHA256
         run: |
-          echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS) ${{ matrix.package }}.tar.xz" | sha256sum --check --status
+          echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS | cut -d" " -f1) ${{ matrix.package }}.tar.xz" | sha256sum --check
 
       - name: Decompress package
         run: |
