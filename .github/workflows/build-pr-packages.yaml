@@ -122,6 +122,8 @@ jobs:
       with:
         path: 3p-package-source/package-system/**/temp
         key: ${{ matrix.package }}-${{ matrix.os }}
+        restore-keys: |
+          ${{ matrix.package }}-${{ matrix.os }}-
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
