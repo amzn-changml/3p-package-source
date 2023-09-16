@@ -130,10 +130,9 @@ jobs:
       if: contains(matrix.package, 'aarch64')
       uses: uraimo/run-on-arch-action@v2
       with:
-        arch: none
-        distro: none
+        arch: aarch64
+        distro: ubuntu_latest
         githubToken: ${{ github.token }}
-        base_image: --platform=linux/arm64 ubuntu:22.04
         setup: |
           mkdir -p "3p-package-source/packages"
           rm ${PWD}/3p-package-source/package_build_list_host_linux.json
