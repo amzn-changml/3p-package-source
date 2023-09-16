@@ -141,14 +141,13 @@ jobs:
         dockerRunArgs: |
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
-          --volume "${PWD}/3p-package-source/packages:/packages"
         shell: /bin/bash
         install: |
           apt-get update
           apt-get install -y build-essential cmake git libssl-dev libffi-dev ninja-build python3 python3-pip software-properties-common
           python3 -m pip install boto3 certifi  
         run: |
-          # python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ --output_folder /packages ${{ matrix.package }}
+          # python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }}
           lsb_release -a
           uname -a
 
