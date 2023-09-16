@@ -119,7 +119,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: 3p-package-source/package-system/**/temp
-        key: ${{ matrix.package }}-${{ matrix.os }}
+        key: ${{ matrix.package }}-${{ matrix.os }}-${{ hashFiles('**/temp') }}
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -179,12 +179,12 @@ jobs:
           
       - name: Verify SHA256
         run: |
-          echo "$(cat ${{ matrix.package }}.tar.xz.content.SHA256SUMS) ${{ matrix.package }}.tar.xz" | sha256sum --check --status
-    
+          echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS) ${{ matrix.package }}.tar.xz" | sha256sum --check --status
+
       - name: Decompress package
         run: |
           tar -xvf ${{ matrix.package }}.tar.xz
-
+    
       - name: Malware scan
         uses: dell/common-github-actions/malware-scanner@main
         with:
@@ -195,9 +195,8 @@ jobs:
     name: Deploying ${{ matrix.package }} to dev S3 bucket
     runs-on: ubuntu-latest
     environment: development 
-    needs: [detect-changes, build-on-specific-os]
+    needs: [detect-changes, build-on-specific-os, validate-packages]
     strategy:
-      fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
       - name: Download packages
@@ -221,7 +220,6 @@ jobs:
     environment: production
     needs: [detect-changes, build-on-specific-os, deploy-dev]
     strategy:
-      fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
       - name: Download packages
@@ -238,4 +236,4 @@ jobs:
            
       - name: Sync to S3
         run: |
-           aws s3 cp ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ ${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }} --recursive --exclude "*" --include "${{ matrix.package }}*" --acl bucket-owner-full-control
+           aws s3 cp ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ ${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/ --recursive --exclude "*" --include "${{ matrix.package }}*" --acl bucket-owner-full-control
