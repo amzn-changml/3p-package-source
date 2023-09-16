@@ -127,8 +127,8 @@ jobs:
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
       env:
-        CMAKE_CXX_COMPILER_LAUNCHER: ccache
-        CMAKE_C_COMPILER_LAUNCHER: ccache
+        CMAKE_CXX_COMPILER_LAUNCHER: sccache
+        CMAKE_C_COMPILER_LAUNCHER: sccache
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
 
