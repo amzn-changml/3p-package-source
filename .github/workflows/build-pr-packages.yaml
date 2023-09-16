@@ -83,6 +83,7 @@ jobs:
   build-on-specific-os:
     name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
     needs: detect-changes
+    permissions: write-all
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
