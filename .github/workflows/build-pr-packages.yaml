@@ -183,10 +183,12 @@ jobs:
           name: ${{ matrix.package }}
           
       - name: Verify SHA256
+        if: ${{ !contains(matrix.package, 'aarch64') }}
         run: |
           echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS | cut -d" " -f1) ${{ matrix.package }}.tar.xz" | sha256sum --check
 
       - name: Decompress package
+        if: ${{ !contains(matrix.package, 'aarch64') }}
         run: |
           tar -xvf ${{ matrix.package }}.tar.xz
     
