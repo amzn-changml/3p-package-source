@@ -118,6 +118,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
     - name: Restore build artifacts
+      id: cache-build-restore
       uses: actions/cache/restore@v3
       with:
         path: 3p-package-source/package-system/**/temp
@@ -154,11 +155,12 @@ jobs:
           uname -a
 
     - name: Cache build artifacts
+      id: cache-build-save
       uses: actions/cache/save@v3
       if: always()
       with:
         path: 3p-package-source/package-system/**/temp/*
-        key: ${{ matrix.package }}-${{ matrix.os }}
+        key: ${{ steps.cache-build-restore.outputs.cache-primary-key }}
       
     - name: Upload packages
       uses: actions/upload-artifact@v3
