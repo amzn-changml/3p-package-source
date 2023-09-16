@@ -20,7 +20,9 @@ on:
       - 'package_build_list_host_*.json'
 
 permissions:
-  actions: 'write'
+  contents: write
+  # We use ghcr.io to store the docker image cache for ARM builds
+  packages: write
 
 jobs:
   detect-changes:
