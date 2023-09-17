@@ -117,12 +117,10 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
     - name: Use ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      if: always()
+      uses: hendrikmuhs/ccache-action@v1.2.10
       with:
-        variant: sccache
         max-size: 2048M
-        key: ${{ matrix.package }}-ccache
+        key: ${{ matrix.package }}
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
