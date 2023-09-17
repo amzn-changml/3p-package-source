@@ -138,9 +138,10 @@ jobs:
       if: contains(matrix.package, 'aarch64')
       uses: uraimo/run-on-arch-action@v2
       with:
-        arch: aarch64
-        distro: ubuntu_latest
+        arch: none
+        distro: none
         githubToken: ${{ github.token }}
+        base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
         setup: |
           mkdir -p "3p-package-source/packages"
           rm ${PWD}/3p-package-source/package_build_list_host_linux.json
@@ -148,11 +149,9 @@ jobs:
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
         shell: /bin/bash
-        install: |
-          apt-get update
-          apt-get install -y build-essential cmake git libssl-dev libffi-dev ninja-build python3 python3-pip software-properties-common
-          python3 -m pip install boto3 certifi  
         run: |
+          env SCCACHE_IDLE_TIMEOUT=0 SCCACHE_DIR='/3p-package-source'/.sccache SCCACHE_CACHE_SIZE='2048M' sccache --start-server
+          sccache -z
           # python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }}
           lsb_release -a
           uname -a
