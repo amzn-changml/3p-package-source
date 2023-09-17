@@ -119,8 +119,11 @@ jobs:
     - name: Use ccache
       uses: hendrikmuhs/ccache-action@v1.2.10
       with:
+        variant: sccache
         max-size: 2048M
         key: ${{ matrix.package }}
+        restore-keys:
+          ${{ matrix.package }}-
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
