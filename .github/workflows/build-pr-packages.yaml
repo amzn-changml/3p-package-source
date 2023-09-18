@@ -32,7 +32,7 @@ jobs:
       with:
         fetch-depth: 10
           
-    - name: Detect platform and command from JSON changes
+    - name: Get package and platform from JSON changes
       id: detect-platform
       run: |
         CHANGED_FILES=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --name-only)
@@ -55,7 +55,8 @@ jobs:
         			;;
         		esac
         
-        		DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix -- $FILE | egrep "^\+" | grep Scripts)
+        		DIFF=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 --exit-code -a --no-prefix -- $FILE \
+              | egrep "^\+" | grep Scripts)
         		PACKAGE=$(echo $DIFF | cut -d'"' -f2)
         
         		JSONline="{\"package\": \"$PACKAGE\", \"os\": \"$OS_RUNNER\"},"
@@ -134,9 +135,8 @@ jobs:
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
   
-    - name: Cache aarch64 sccache
-      if: always()
-      uses: actions/cache@v3
+    - name: Restore aarch64 sccache
+      uses: actions/cache/restore@v3
       with:
         path: 3p-package-source/.cache/sccache
         key: ${{ matrix.package }}-sccache
@@ -168,7 +168,14 @@ jobs:
           sccache --start-server
           sccache -z
           ls -lah /3p-package-source/.cache
-          timeout 350m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} ; sccache --stop-server
+          timeout 350m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} ; echo Stopping due to timeout && sccache -z && sccache --stop-server
+
+    - name: Save aarch64 sccache
+      if: always()
+      uses: actions/cache/save@v3
+      with:
+        path: 3p-package-source/.cache/*
+        key: ${{ matrix.package }}-sccache
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
