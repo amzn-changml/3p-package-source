@@ -145,14 +145,15 @@ jobs:
       with:
         attempt_limit: 3
         attempt_delay: 100
-        action: uraimo/run-on-arch-action@v2
+        action: uraimo/run-on-arch-action@v2.5.1
         with: |
           arch: none
           distro: none
-          base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
+          base_image: ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
           setup: |
             grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
           dockerRunArgs: |
+            --platform=linux/arm64 
             --user ${{ steps.get-user.outputs.uid_gid }}
             --volume "${PWD}:/workspace"
             --volume "${PWD}/3p-package-scripts:/scripts"
