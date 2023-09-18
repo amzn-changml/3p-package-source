@@ -128,10 +128,8 @@ jobs:
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
   
-    - name: Cache aarch64 sccache
-      if: | 
-        contains(matrix.package, 'aarch64')
-        always()
+    - name: Cache sccache
+      if: always()
       uses: actions/cache@v3
       with:
         path: 3p-package-source/.sccache
