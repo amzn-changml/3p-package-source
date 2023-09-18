@@ -159,7 +159,7 @@ jobs:
           SCCACHE_IDLE_TIMEOUT: 0 
           SCCACHE_DIR: /workspace/.sccache
           SCCACHE_CACHE_SIZE: 2048M
-          JOB_TIMEOUT: 20m
+          JOB_TIMEOUT: 400m
         shell: /bin/bash
         run: |
           lsb_release -a
