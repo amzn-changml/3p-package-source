@@ -151,7 +151,7 @@ jobs:
         run: |
           lsb_release -a
           uname -a
-          env SCCACHE_IDLE_TIMEOUT=0 SCCACHE_DIR='/3p-package-source'/.sccache SCCACHE_CACHE_SIZE='2048M' sccache --start-server
+          env SCCACHE_IDLE_TIMEOUT=0 SCCACHE_DIR=/3p-package-source/.sccache SCCACHE_CACHE_SIZE=2048M sccache --start-server
           sccache -z
           export CMAKE_CXX_COMPILER_LAUNCHER=sccache
           export CMAKE_C_COMPILER_LAUNCHER=sccache
