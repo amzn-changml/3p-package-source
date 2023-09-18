@@ -147,14 +147,18 @@ jobs:
         dockerRunArgs: |
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
+        env: |
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          SCCACHE_IDLE_TIMEOUT: 0 
+          SCCACHE_DIR: /3p-package-source/.sccache 
+          SCCACHE_CACHE_SIZE: 2048M
         shell: /bin/bash
         run: |
           lsb_release -a
           uname -a
-          env SCCACHE_IDLE_TIMEOUT=0 SCCACHE_DIR=/3p-package-source/.sccache SCCACHE_CACHE_SIZE=2048M sccache --start-server
+          sccache --start-server
           sccache -z
-          export CMAKE_CXX_COMPILER_LAUNCHER=sccache
-          export CMAKE_C_COMPILER_LAUNCHER=sccache
           python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }}
 
     - name: Upload packages
