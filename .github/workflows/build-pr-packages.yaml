@@ -117,7 +117,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
     - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.3
+      uses: 0o-de-lally/sccache-action@local
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -129,7 +129,9 @@ jobs:
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
   
     - name: Cache aarch64 sccache
-      if: contains(matrix.package, 'aarch64')
+      if: | 
+        contains(matrix.package, 'aarch64')
+        always()
       uses: actions/cache@v3
       with:
         path: 3p-package-source/.sccache
