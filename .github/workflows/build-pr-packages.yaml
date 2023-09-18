@@ -140,6 +140,7 @@ jobs:
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
   
     - name: Restore aarch64 sccache
+      if: contains(matrix.package, 'aarch64')
       uses: actions/cache/restore@v3
       with:
         path: 3p-package-source/.cache/sccache
@@ -173,7 +174,7 @@ jobs:
           sccache --start-server
           sccache -z
           ls -lah /3p-package-source/.cache
-          timeout 15m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} ; echo Stopping due to timeout && sccache -z && sccache --stop-server
+          timeout 15m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} || echo Stopping due to timeout && sccache -z && sccache --stop-server && exit 1
 
     - name: Save aarch64 sccache
       if: always()
