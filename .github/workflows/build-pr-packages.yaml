@@ -138,13 +138,6 @@ jobs:
         CMAKE_C_COMPILER_LAUNCHER: sccache
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
-  
-    - name: Restore aarch64 sccache
-      if: contains(matrix.package, 'aarch64')
-      uses: actions/cache/restore@v3
-      with:
-        path: 3p-package-source/.cache/sccache
-        key: ${{ matrix.package }}-sccache
     
     - name: Run build command (aarch64)
       if: contains(matrix.package, 'aarch64')
@@ -165,8 +158,9 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
           CMAKE_C_COMPILER_LAUNCHER: sccache
           SCCACHE_IDLE_TIMEOUT: 0 
-          SCCACHE_DIR: /3p-package-source/.cache/sccache
+          SCCACHE_DIR: /3p-package-source/.sccache
           SCCACHE_CACHE_SIZE: 2048M
+          JOB_TIMEOUT: 15m
         shell: /bin/bash
         run: |
           lsb_release -a
@@ -174,14 +168,7 @@ jobs:
           sccache --start-server
           sccache -z
           ls -lah /3p-package-source/.cache
-          timeout 15m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} || echo Stopping due to timeout && sccache -z && sccache --stop-server && exit 1
-
-    - name: Save aarch64 sccache
-      if: always()
-      uses: actions/cache/save@v3
-      with:
-        path: 3p-package-source/.cache/*
-        key: ${{ matrix.package }}-sccache
+          timeout $JOB_TIMEOUT python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} || echo Stopping due to timeout of $JOB_TIMEOUT && sccache -z && sccache --stop-server && exit 1
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
