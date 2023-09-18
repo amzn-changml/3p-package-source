@@ -162,8 +162,6 @@ jobs:
           SCCACHE_DIR: /3p-package-source/.cache/sccache
           SCCACHE_CACHE_SIZE: 2048M
         shell: /bin/bash
-        install: |
-          apt-get install timeout -y
         run: |
           lsb_release -a
           uname -a
