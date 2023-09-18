@@ -116,8 +116,14 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1.12.0
 
-    - name: Run sccache-cache
-      uses: 0o-de-lally/sccache-action@local
+    - name: Use sccache
+      uses: hendrikmuhs/ccache-action@v1.2.10
+      with:
+        variant: sccache
+        max-size: 2048M
+        key: ${{ matrix.package }}
+        restore-keys:
+          ${{ matrix.package }}-
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
@@ -128,11 +134,11 @@ jobs:
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
   
-    - name: Cache sccache
+    - name: Cache aarch64 sccache
       if: always()
       uses: actions/cache@v3
       with:
-        path: 3p-package-source/.sccache
+        path: 3p-package-source/.cache/sccache
         key: ${{ matrix.package }}-sccache
     
     - name: Run build command (aarch64)
@@ -145,6 +151,7 @@ jobs:
         base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
         setup: |
           mkdir -p "3p-package-source/packages"
+          mkdir -p "3p-package-source/.cache"
           rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
@@ -153,7 +160,7 @@ jobs:
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
           CMAKE_C_COMPILER_LAUNCHER: sccache
           SCCACHE_IDLE_TIMEOUT: 0 
-          SCCACHE_DIR: /3p-package-source/.sccache 
+          SCCACHE_DIR: /3p-package-source/.cache/sccache
           SCCACHE_CACHE_SIZE: 2048M
         shell: /bin/bash
         run: |
@@ -245,3 +252,4 @@ jobs:
       - name: Sync to S3
         run: |
            aws s3 cp ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ ${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/ --recursive --exclude "*" --include "${{ matrix.package }}*" --acl bucket-owner-full-control
+           
