@@ -87,8 +87,12 @@ jobs:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     runs-on: ${{ matrix.os }}
-    
+
     steps:
+    - name: Configure
+      id: get-user
+      run: echo "uid_gid=$(id -u):$(id -g)" >> $GITHUB_OUTPUT
+      
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
@@ -153,6 +157,7 @@ jobs:
           mkdir -p "3p-package-source/.cache"
           rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
+          --user ${{ steps.get-user.outputs.uid_gid }}
           --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
           --volume "${PWD}/3p-package-source:/3p-package-source"
         env: |
