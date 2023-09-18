@@ -147,28 +147,27 @@ jobs:
         distro: none
         base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
         setup: |
-          mkdir -p "3p-package-source/packages"
-          mkdir -p "3p-package-source/.cache"
-          rm ${PWD}/3p-package-source/package_build_list_host_linux.json
+          grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
           --user ${{ steps.get-user.outputs.uid_gid }}
-          --volume "${PWD}/3p-package-scripts:/3p-package-scripts"
-          --volume "${PWD}/3p-package-source:/3p-package-source"
+          --volume "${PWD}:/workspace"
+          --volume "${PWD}/3p-package-scripts:/scripts"
+          --volume "${PWD}/3p-package-source:/source"
         env: |
           CMAKE_CXX_COMPILER_LAUNCHER: sccache
           CMAKE_C_COMPILER_LAUNCHER: sccache
           SCCACHE_IDLE_TIMEOUT: 0 
-          SCCACHE_DIR: /3p-package-source/.sccache
+          SCCACHE_DIR: /workspace/.sccache
           SCCACHE_CACHE_SIZE: 2048M
-          JOB_TIMEOUT: 15m
+          JOB_TIMEOUT: 20m
         shell: /bin/bash
         run: |
           lsb_release -a
           uname -a
           sccache --start-server
           sccache -z
-          ls -lah /3p-package-source/.cache
-          timeout $JOB_TIMEOUT python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} || echo Stopping due to timeout of $JOB_TIMEOUT && sccache -z && sccache --stop-server && exit 1
+          ls -lah $SCCACHE_DIR
+          timeout $JOB_TIMEOUT python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }} || echo Stopping due to timeout of $JOB_TIMEOUT && sccache -z && sccache --stop-server && exit 1
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
