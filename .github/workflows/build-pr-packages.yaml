@@ -166,7 +166,7 @@ jobs:
           uname -a
           sccache --start-server
           sccache -z
-          ls -lah $SCCACHE_DIR
+          ls -lah /workspace
           timeout $JOB_TIMEOUT python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }} || echo Stopping due to timeout of $JOB_TIMEOUT && sccache -z && sccache --stop-server && exit 1
 
     - name: Upload packages
