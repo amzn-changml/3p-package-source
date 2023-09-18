@@ -121,8 +121,7 @@ jobs:
       with:
         variant: sccache
         max-size: 2048M
-        append-timestamp: false
-        key: ${{ matrix.package }}-${{ hashFiles('3p-package-source/.sccache') }}
+        key: ${{ matrix.package }}
         restore-keys:
           ${{ matrix.package }}-
         
