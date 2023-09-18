@@ -168,7 +168,7 @@ jobs:
           uname -a
           sccache --start-server
           sccache -z
-          python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }}
+          timout 350m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} ; sccache --stop-server
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
