@@ -147,7 +147,6 @@ jobs:
       with:
         arch: none
         distro: none
-        githubToken: ${{ github.token }}
         base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
         setup: |
           mkdir -p "3p-package-source/packages"
@@ -163,11 +162,14 @@ jobs:
           SCCACHE_DIR: /3p-package-source/.cache/sccache
           SCCACHE_CACHE_SIZE: 2048M
         shell: /bin/bash
+        install: |
+          apt-get install timeout
         run: |
           lsb_release -a
           uname -a
           sccache --start-server
           sccache -z
+          ls -lah /3p-package-source/.cache
           timout 350m python3 /3p-package-scripts/o3de_package_scripts/build_package.py --search_path /3p-package-source/ ${{ matrix.package }} ; sccache --stop-server
 
     - name: Upload packages
