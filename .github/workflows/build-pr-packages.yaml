@@ -126,14 +126,14 @@ jobs:
       with:
         variant: sccache
         max-size: 2048M
-        key: ${{ matrix.package }}
+        append-timestamp: false
+        key: ${{ matrix.package }}-${{ matrix.os }}
         restore-keys:
-          ${{ matrix.package }}-
+          ${{ matrix.package }}-${{ matrix.os }}
         
     - name: Run build command
       if: ${{ !contains(matrix.package, 'aarch64') }}
       env:
-        SCCACHE_GHA_ENABLED: "true"
         CMAKE_CXX_COMPILER_LAUNCHER: sccache
         CMAKE_C_COMPILER_LAUNCHER: sccache
       run: |
@@ -141,33 +141,36 @@ jobs:
     
     - name: Run build command (aarch64)
       if: contains(matrix.package, 'aarch64')
-      uses: uraimo/run-on-arch-action@v2
+      uses: Wandalen/wretry.action@v1.3.0
       with:
-        arch: none
-        distro: none
-        base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
-        setup: |
-          grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
-        dockerRunArgs: |
-          --user ${{ steps.get-user.outputs.uid_gid }}
-          --volume "${PWD}:/workspace"
-          --volume "${PWD}/3p-package-scripts:/scripts"
-          --volume "${PWD}/3p-package-source:/source"
-        env: |
-          CMAKE_CXX_COMPILER_LAUNCHER: sccache
-          CMAKE_C_COMPILER_LAUNCHER: sccache
-          SCCACHE_IDLE_TIMEOUT: 0 
-          SCCACHE_DIR: /workspace/.sccache
-          SCCACHE_CACHE_SIZE: 2048M
-          JOB_TIMEOUT: 400m
-        shell: /bin/bash
-        run: |
-          lsb_release -a
-          uname -a
-          sccache --start-server
-          sccache -z
-          ls -lah /workspace
-          timeout $JOB_TIMEOUT python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }} || echo Stopping due to timeout of $JOB_TIMEOUT && exit 1
+        attempt_limit: 3
+        attempt_delay: 100
+        action: uraimo/run-on-arch-action@v2
+        with: |
+          arch: none
+          distro: none
+          base_image: --platform=linux/arm64 ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
+          setup: |
+            grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
+          dockerRunArgs: |
+            --user ${{ steps.get-user.outputs.uid_gid }}
+            --volume "${PWD}:/workspace"
+            --volume "${PWD}/3p-package-scripts:/scripts"
+            --volume "${PWD}/3p-package-source:/source"
+          env: |
+            CMAKE_CXX_COMPILER_LAUNCHER: sccache
+            CMAKE_C_COMPILER_LAUNCHER: sccache
+            SCCACHE_IDLE_TIMEOUT: 0 
+            SCCACHE_DIR: /workspace/.sccache
+            SCCACHE_CACHE_SIZE: 2048M
+          shell: /bin/bash
+          run: |
+            lsb_release -a
+            uname -a
+            sccache --start-server
+            sccache -z
+            ls -lah /workspace
+            python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }}
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
