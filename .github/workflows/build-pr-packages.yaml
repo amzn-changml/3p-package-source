@@ -3,19 +3,10 @@
 name: Build 3P Packages PR
 
 on:
-  # Allows you to run this workflow manually from the Actions tag
-  workflow_dispatch:
-    inputs:
-      build_path:
-        description: 'The json file to build'
-        type: choice
-        options: 
-        - "package_build_list_host_windows.json"
-        - "package_build_list_host_linux.json"
-        - "package_build_list_host_linux-aarch64.json"
-        - "package_build_list_host_darwin.json"
-
   pull_request:
+    branches:
+      - main
+      - development
     paths:
       - 'package_build_list_host_*.json'
 
@@ -122,53 +113,56 @@ jobs:
       with:
         variant: sccache
         max-size: 2048M
-        append-timestamp: false
         key: ${{ matrix.package }}-${{ matrix.os }}
         restore-keys:
           ${{ matrix.package }}-${{ matrix.os }}
         
-    - name: Run build command
-      if: ${{ !contains(matrix.package, 'aarch64') }}
+    - name: Run build command (windows)
+      if: contains(matrix.package, 'windows')
       env:
         CMAKE_CXX_COMPILER_LAUNCHER: sccache
         CMAKE_C_COMPILER_LAUNCHER: sccache
-        CMAKE_GENERATOR: Ninja
+        CMAKE_GENERATOR: Ninja # ccache/sccache cannot be used as the compiler launcher under cmake if the generator is MSBuild
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
     
-    - name: Run build command (aarch64)
-      if: contains(matrix.package, 'aarch64')
-      uses: Wandalen/wretry.action@v1.3.0
+    - name: Run build command (linux/mac)
+      if: contains(matrix.package, 'linux') && ${{ !contains(matrix.package, 'aarch64') }}
+      env:
+        CMAKE_CXX_COMPILER_LAUNCHER: sccache
+        CMAKE_C_COMPILER_LAUNCHER: sccache
+      run: |
+        python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
+    
+    - name: Run build command (linux aarch64)
+      if: contains(matrix.package, 'linux') && contains(matrix.package, 'aarch64')
+      uses: uraimo/run-on-arch-action@v2.5.1
       with:
-        attempt_limit: 3
-        attempt_delay: 100
-        action: uraimo/run-on-arch-action@v2.5.1
-        with: |
-          arch: none
-          distro: none
-          base_image: ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
-          setup: |
-            grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
-          dockerRunArgs: |
-            --platform=linux/arm64 
-            --user ${{ steps.get-user.outputs.uid_gid }}
-            --volume "${PWD}:/workspace"
-            --volume "${PWD}/3p-package-scripts:/scripts"
-            --volume "${PWD}/3p-package-source:/source"
-          env: |
-            CMAKE_CXX_COMPILER_LAUNCHER: sccache
-            CMAKE_C_COMPILER_LAUNCHER: sccache
-            SCCACHE_IDLE_TIMEOUT: 0 
-            SCCACHE_DIR: /workspace/.sccache
-            SCCACHE_CACHE_SIZE: 2048M
-          shell: /bin/bash
-          run: |
-            lsb_release -a
-            uname -a
-            sccache --start-server
-            sccache -z
-            ls -lah /workspace
-            python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }}
+        arch: none
+        distro: none
+        base_image: ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest
+        setup: |
+          grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
+        dockerRunArgs: |
+          --platform=linux/arm64 
+          --user ${{ steps.get-user.outputs.uid_gid }}
+          --volume "${PWD}:/workspace"
+          --volume "${PWD}/3p-package-scripts:/scripts"
+          --volume "${PWD}/3p-package-source:/source"
+        env: |
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          SCCACHE_IDLE_TIMEOUT: 0 
+          SCCACHE_DIR: /workspace/.sccache
+          SCCACHE_CACHE_SIZE: 2048M
+        shell: /bin/bash
+        run: |
+          lsb_release -a
+          uname -a
+          sccache --start-server
+          sccache -z
+          ls -lah /workspace
+          python3 /scripts/o3de_package_scripts/build_package.py --search_path /source/ ${{ matrix.package }}
 
     - name: Upload packages
       uses: actions/upload-artifact@v3
