@@ -1,0 +1,69 @@
+# This automation promotes 3p packages based on a merge 
+
+name: Promote 3P Packages
+
+on:
+  # Allows you to run this workflow manually from the Actions tag
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: 'Filename of package to promote'
+        required: true
+        type: string
+
+  push:
+    branches:
+      - main
+      - development
+    paths:
+      - 'package_build_list_host_*.json'
+
+jobs:
+  deploy-dev:
+    name: Deploying to dev S3 bucket
+    runs-on: ubuntu-latest
+    environment: development 
+    steps:
+      - name: Download packages
+        uses: dawidd6/action-download-artifact@v2.28.0
+        with:
+          workflow: build-pr-packages.yaml
+          workflow_conclusion: success
+          allow_forks: false
+          path: packages/
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
+           
+      - name: Sync to S3
+        run: |
+           aws s3 sync ./packages/ ${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ --acl bucket-owner-full-control
+        
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [deploy-dev]
+    steps:
+      - name: Download packages
+        uses: dawidd6/action-download-artifact@v2.28.0
+        with:
+          workflow: build-pr-packages.yaml
+          workflow_conclusion: success
+          allow_forks: false
+          path: packages/
+          
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
+           
+      - name: Sync to S3
+        run: |
+           aws s3 sync ./packages/ ${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/ --acl bucket-owner-full-control
+           
