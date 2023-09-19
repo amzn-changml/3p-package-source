@@ -79,10 +79,6 @@ jobs:
   build-on-specific-os:
     name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
     needs: detect-changes
-    permissions:
-      contents: read
-      # We use ghcr.io to store the docker image cache for ARM builds
-      packages: write
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
@@ -136,6 +132,7 @@ jobs:
       env:
         CMAKE_CXX_COMPILER_LAUNCHER: sccache
         CMAKE_C_COMPILER_LAUNCHER: sccache
+        CMAKE_GENERATOR: Ninja
       run: |
         python3 3p-package-scripts/o3de_package_scripts/build_package.py --search_path 3p-package-source ${{ matrix.package }}
     
