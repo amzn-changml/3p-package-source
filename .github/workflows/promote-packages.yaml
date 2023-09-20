@@ -31,7 +31,6 @@ jobs:
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
           check_artifacts: true
-          allow_forks: false
           path: packages/
           
       - name: Configure AWS Credentials
@@ -57,7 +56,6 @@ jobs:
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
           check_artifacts: true
-          allow_forks: false
           path: packages/
           
       - name: Configure AWS Credentials
