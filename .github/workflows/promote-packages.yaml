@@ -55,6 +55,7 @@ jobs:
         with:
           workflow: build-pr-packages.yaml
           workflow_conclusion: success
+          commit: ${{github.event.pull_request.head.sha}}
           check_artifacts: true
           allow_forks: false
           path: packages/
