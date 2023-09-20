@@ -179,14 +179,13 @@ jobs:
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
     steps:
       - name: Download packages
-        if: ${{ !contains(matrix.package, 'aarch64') }}
         uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.package }}
           
       - name: Verify SHA256
-        if: ${{ !contains(matrix.package, 'aarch64') }}
         run: |
+          echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS)"
           echo "$(cat ${{ matrix.package }}.tar.xz.SHA256SUMS | cut -d" " -f1) ${{ matrix.package }}.tar.xz" | sha256sum --check
 
       - name: Decompress package
