@@ -8,7 +8,7 @@ on:
     inputs:
       package_name:
         description: 'Filename of package to promote'
-        default: '-'
+        default: '_'
         required: false
         type: string
 
@@ -43,8 +43,7 @@ jobs:
            
       - name: Sync to S3
         run: |
-           aws s3 cp packages/ s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ --recursive --exclude "*" --include "${{ inputs.package_name }}.*" --include *.json --include *.xz --include *.SHA256SUMS --acl bucket-owner-full-control--acl bucket-owner-full-control
-        
+           aws s3 cp packages/ s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ --recursive --exclude "*" --include "${{ inputs.package_name }}.*" --include *.json --include *.xz --include *.SHA256SUMS --acl bucket-owner-full-control
   deploy-prod:
     runs-on: ubuntu-latest
     environment: production
