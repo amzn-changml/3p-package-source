@@ -88,7 +88,7 @@ jobs:
           echo ${{ matrix.package }} already exists in prod. Check the rev in the json file to ensure it is incremented
           exit 1
         else
-          echo ${{ matrix.package }} doesn't exist in CDN, continuing...
+          echo ${{ matrix.package }} does not exist in CDN, continuing...
           exit 0
         fi
     
