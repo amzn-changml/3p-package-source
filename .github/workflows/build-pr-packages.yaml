@@ -1,6 +1,6 @@
 # This automation builds 3p packages based on a PR or manually run
 
-name: Build 3P Packages PR
+name: Build 3P Packages
 
 on:
   pull_request:
@@ -66,6 +66,36 @@ jobs:
 
         # Set output
         echo "matrix=$( echo "$JSON" )" >> $GITHUB_OUTPUT
+
+  validate-changes:
+    name: Check changes for issues
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout 3P source repo
+      uses: actions/checkout@v4
+        
+    - name: Check if package already exists in prod
+      env:
+        PROD_CDN: "https://d3t6xeg4fgfoum.cloudfront.net"
+      run: |
+        url="${{ env.PROD_CDN }}/${{ matrix.package }}"
+        if curl --head --silent --fail ${url}.tar.xz > /dev/null 2>&1; then
+          echo ${{ matrix.package }} already exists in prod. Check the rev in the json file to ensure it is incremented
+          exit 1
+        else
+          echo ${{ matrix.package }} doesn't exist in CDN, continuing...
+          exit 0
+        fi
+    
+    - name: Malware scan of repo
+      uses: dell/common-github-actions/malware-scanner@main
+      with:
+        directories: .
+        options: -r
 
   build-on-specific-os:
     name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
