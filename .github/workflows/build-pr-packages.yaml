@@ -69,6 +69,7 @@ jobs:
 
   validate-changes:
     name: Check changes for issues
+    needs: detect-changes
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
@@ -99,7 +100,7 @@ jobs:
 
   build-on-specific-os:
     name: Build on "${{ matrix.os }}" for "${{ matrix.package }}"
-    needs: detect-changes
+    needs: [detect-changes, validate-changes]
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.detect-changes.outputs.matrix)}}
