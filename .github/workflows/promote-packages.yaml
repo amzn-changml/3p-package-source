@@ -38,13 +38,13 @@ jobs:
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
       - name: Copy to S3
+        id: dev-s3-filelist
         run: |
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
             aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
             UPLOADED_FILES="$UPLOADED_FILES$filename,"
           done
-          echo $UPLOADED_FILES
           echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
 
   create-o3de-3p-pr:
@@ -52,9 +52,8 @@ jobs:
     needs: deploy-dev
     runs-on: ubuntu-latest
     env:
-      O3DE_REPO_PATH: "o3de"
-      DEV_CDN: "https://d1gg6ket0m44ly.cloudfront.net"
-      UPLOADED_FILES: "${{ needs.deploy-dev.outputs.uploaded_files }}"
+      O3DE_REPO_PATH: o3de
+      DEV_CDN: https://d1gg6ket0m44ly.cloudfront.net
 
     steps:
     - name: Checkout o3de repository
@@ -66,6 +65,7 @@ jobs:
 
     - name: Copy dev package from S3
       run: |
+        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
         IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
         for filename in "${FILES[@]}"; do
             if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
@@ -76,6 +76,7 @@ jobs:
     - name: Update BuiltInPackages with new SHA256 and version
 
       run: |
+        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
         IFS=',' read -ra FILENAMES <<<"$UPLOADED_FILES"
         for filename in "${FILENAMES[@]}"; do
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
