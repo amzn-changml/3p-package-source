@@ -51,7 +51,8 @@ jobs:
     name: Create PR in O3DE to update version
     needs: deploy-dev
     runs-on: ubuntu-latest
-    environment: development 
+    env:
+      O3DE_REPO_PATH: "o3de"
 
     steps:
     - name: Checkout o3de repository
@@ -79,8 +80,8 @@ jobs:
         done
         
     - name: Update BuiltInPackages with new SHA256 and version
+      id: update-step
       run: |
-        O3DE_REPO_PATH="o3de"
         UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
         IFS=',' read -ra FILENAMES <<<"$UPLOADED_FILES"
         for filename in "${FILENAMES[@]}"; do
@@ -102,7 +103,7 @@ jobs:
             PACKAGE_NAME=$(echo "$file" | rev | cut -d'-' -f3- | rev)  # Extract package name without platform and version
             PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
             
-            FILE_PATH="$O3DE_REPO_PATH/cmake/3rdParty/Platform/$PLATFORM/$CMAKE_FILE"
+            FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/$PLATFORM/$CMAKE_FILE"
             
             # Replace the entry in the cmake file or append if not found
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
@@ -114,23 +115,19 @@ jobs:
           fi
         done
         
-        echo "package_name=$PARTIAL_PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+        echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
     
     - name: Commit and create PR
-      run: |
-        cd $O3DE_REPO_PATH
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@github.com"
-        
-        # Create a new branch
-        BRANCH_NAME="update-${{ steps.update-step.outputs.package_name }}-3p-cmake-file"
-        git checkout -b $BRANCH_NAME
-        
-        git add -A
-        COMMIT_MSG="Update version SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
-        git commit -m "$COMMIT_MSG"
-        git push --set-upstream origin $BRANCH_NAME
-        gh pr create --base development --head $BRANCH_NAME --title "$COMMIT_MSG" --body "Automated PR to update SHA256 hash for ${{ steps.update-step.outputs.package_name }}." --repo amzn-changml/o3de
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: ${{ env.O3DE_REPO_PATH }}
+        branch: "update-3p-${{ steps.update-step.outputs.package_name }}-cmake-file"
+        commit-message: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
+        title: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
+        body: "Automated PR to update 3P version and SHA256 for ${{ steps.update-step.outputs.package_name }}"
+        signoff: true
+        delete-branch: true
            
   deploy-prod:
     name: Deploying to prod S3 bucket
