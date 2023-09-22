@@ -44,6 +44,7 @@ jobs:
       - name: Copy to S3
         env:
           PATH: packages/
+        shell: bash
         run: |
           # Flatten folder structure due to unzipping files
           find ${{ env.PATH }} -type f | while read file; do
@@ -70,9 +71,10 @@ jobs:
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
       - name: Promote dev package to prod
+        shell: bash
         run: |
           UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
           IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
           for filename in "${FILES[@]}"; do
-              aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+              echo aws s3 cp --dryrun "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
           done
