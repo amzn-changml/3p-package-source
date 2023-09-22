@@ -16,9 +16,14 @@ on:
 jobs:
   deploy-dev:
     name: Deploying to dev S3 bucket
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     environment: development 
     steps:
+
+      - name: Configure
+        run: |
+          apt-get install findtools -y
+          
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
         with:
@@ -54,6 +59,11 @@ jobs:
     environment: production
     needs: [deploy-dev]
     steps:
+
+      - name: Configure
+        run: |
+          apt-get install findtools -y
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
