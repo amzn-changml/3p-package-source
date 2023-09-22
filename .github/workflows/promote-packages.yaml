@@ -54,6 +54,7 @@ jobs:
     env:
       O3DE_REPO_PATH: "o3de"
       DEV_CDN: "https://d1gg6ket0m44ly.cloudfront.net"
+      UPLOADED_FILES: "${{ needs.deploy-dev.outputs.uploaded_files }}"
 
     steps:
     - name: Checkout o3de repository
@@ -65,7 +66,6 @@ jobs:
 
     - name: Copy dev package from S3
       run: |
-        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
         IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
         for filename in "${FILES[@]}"; do
             if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
@@ -74,9 +74,8 @@ jobs:
         done
         
     - name: Update BuiltInPackages with new SHA256 and version
-      id: update-step
+
       run: |
-        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
         IFS=',' read -ra FILENAMES <<<"$UPLOADED_FILES"
         for filename in "${FILENAMES[@]}"; do
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
@@ -113,14 +112,16 @@ jobs:
     
     - name: Commit and create PR
       uses: peter-evans/create-pull-request@v5
+      env:
+        package_name: ${{ env.package_name }}
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         path: ${{ env.O3DE_REPO_PATH }}
         base: development
-        branch: "update-3p-${{ steps.update-step.outputs.package_name }}-cmake-file"
-        commit-message: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
-        title: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
-        body: "Automated PR to update 3P version and SHA256 for ${{ steps.update-step.outputs.package_name }}"
+        branch: "update-3p-$package_name-cmake-file"
+        commit-message: "Update 3P version and SHA256 hash for $package_name"
+        title: "Update 3P version and SHA256 hash for $package_name"
+        body: "Automated PR to update 3P version and SHA256 for $package_name"
         signoff: true
         delete-branch: true
            
