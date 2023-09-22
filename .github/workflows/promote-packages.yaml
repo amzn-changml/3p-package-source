@@ -46,7 +46,7 @@ jobs:
           PATH: packages/
         shell: bash
         run: |
-          yum install -y findutils
+          apt-get install -y findutils
           # Flatten folder structure due to unzipping files
           find ${{ env.PATH }} -type f | while read file; do
             filename=$(basename "$file")
@@ -74,7 +74,7 @@ jobs:
       - name: Promote dev package to prod
         shell: bash
         run: |
-          yum install -y findutils
+          apt-get install -y findutils
           UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
           IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
           for filename in "${FILES[@]}"; do
