@@ -46,6 +46,91 @@ jobs:
           done
           echo $UPLOADED_FILES
           echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
+
+  create-o3de-3p-pr:
+    name: Create PR in O3DE to update version
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: development 
+
+    steps:
+    - name: Checkout o3de repository
+      uses: actions/checkout@v4
+      with:
+        repository: amzn-changml/o3de
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: o3de
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+         aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+         aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+         aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
+
+    - name: Copy dev package from S3
+      run: |
+        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
+        IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
+        for filename in "${FILES[@]}"; do
+            if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
+              aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" .
+            fi
+        done
+        
+    - name: Update BuiltInPackages with new SHA256 and version
+      run: |
+        O3DE_REPO_PATH="o3de"
+        UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
+        IFS=',' read -ra FILENAMES <<<"$UPLOADED_FILES"
+        for filename in "${FILENAMES[@]}"; do
+          if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
+            content=$(cat "$filename")
+            file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
+            hash=$(echo "$content" | awk '{print $1}')
+            
+            PLATFORM=$(echo "$file" | rev | cut -d'-' -f1 | rev)  # Extract platform from filename
+            
+            # Determine x86 or aarch64 cmake file name based on file suffix
+            if [[ $file == *linux-aarch64 ]]; then
+                CMAKE_FILE="BuiltInPackages_linux_aarch64.cmake"
+            elif [[ $file == *linux ]]; then
+                CMAKE_FILE="BuiltInPackages_linux_x86_64.cmake"
+            else
+                CMAKE_FILE="BuiltInPackages_$PLATFORM.cmake"
+            fi
+            PACKAGE_NAME=$(echo "$file" | rev | cut -d'-' -f3- | rev)  # Extract package name without platform and version
+            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
+            
+            FILE_PATH="$O3DE_REPO_PATH/cmake/3rdParty/Platform/$PLATFORM/$CMAKE_FILE"
+            
+            # Replace the entry in the cmake file or append if not found
+            grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
+            if [ $? -eq 0 ]; then
+                sed -i "s|ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*PACKAGE_HASH [a-f0-9]\{64\}|ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash|g" "$FILE_PATH"
+            else
+                echo "ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash)" >> "$FILE_PATH"
+            fi
+          fi
+        done
+        
+        echo "package_name=$PARTIAL_PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+    
+    - name: Commit and create PR
+      run: |
+        cd $O3DE_REPO_PATH
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        
+        # Create a new branch
+        BRANCH_NAME="update-${{ steps.update-step.outputs.package_name }}-3p-cmake-file"
+        git checkout -b $BRANCH_NAME
+        
+        git add -A
+        COMMIT_MSG="Update version SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
+        git commit -m "$COMMIT_MSG"
+        git push --set-upstream origin $BRANCH_NAME
+        gh pr create --base development --head $BRANCH_NAME --title "$COMMIT_MSG" --body "Automated PR to update SHA256 hash for ${{ steps.update-step.outputs.package_name }}." --repo amzn-changml/o3de
            
   deploy-prod:
     name: Deploying to prod S3 bucket
