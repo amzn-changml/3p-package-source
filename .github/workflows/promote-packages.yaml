@@ -22,7 +22,7 @@ jobs:
 
       - name: Configure
         run: |
-          apt-get install findtools -y
+          sudo apt-get install findtools -y
           
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
