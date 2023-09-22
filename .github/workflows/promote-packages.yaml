@@ -116,6 +116,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         path: ${{ env.O3DE_REPO_PATH }}
+        base: development
         branch: "update-3p-${{ steps.update-step.outputs.package_name }}-cmake-file"
         commit-message: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
         title: "Update 3P version and SHA256 hash for ${{ steps.update-step.outputs.package_name }}"
