@@ -27,13 +27,6 @@ jobs:
           commit: ${{github.event.pull_request.head.sha}}
           check_artifacts: true
           path: packages/
-          
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
-           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
-           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
       - name: Copy to S3
         env:
@@ -53,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       O3DE_REPO_PATH: "o3de"
+      DEV_CDN: "https://d1gg6ket0m44ly.cloudfront.net"
 
     steps:
     - name: Checkout o3de repository
@@ -61,13 +55,6 @@ jobs:
         repository: amzn-changml/o3de
         token: ${{ secrets.GITHUB_TOKEN }}
         path: o3de
-    
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-         aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
-         aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
-         aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
 
     - name: Copy dev package from S3
       run: |
@@ -75,7 +62,7 @@ jobs:
         IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
         for filename in "${FILES[@]}"; do
             if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
-              aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" .
+              wget "${{ env.DEV_CDN }}/$filename"
             fi
         done
         
