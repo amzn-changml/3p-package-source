@@ -44,14 +44,14 @@ jobs:
         env:
           PATH: packages/
         run: |
-            find ${{ env.PATH }} -type f | while read file; do
-              filename=$(basename "$file")
-              aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-              UPLOADED_FILES="$UPLOADED_FILES$filename,"
-            done
+          /usr/bin/find ${{ env.PATH }} -type f | while read file; do
+            filename=$(basename "$file")
+            aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+            UPLOADED_FILES="$UPLOADED_FILES$filename,"
+          done
 
-            echo $UPLOADED_FILES
-            echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
+          echo $UPLOADED_FILES
+          echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
            
   deploy-prod:
     name: Deploying to prod S3 bucket
@@ -59,10 +59,6 @@ jobs:
     environment: production
     needs: [deploy-dev]
     steps:
-
-      - name: Configure
-        run: |
-          apt-get install findtools -y
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -73,8 +69,8 @@ jobs:
            
       - name: Promote dev package to prod
         run: |
-            UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
-            IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
-            for filename in "${FILES[@]}"; do
-                echo aws s3 cp --dryrun "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-            done
+          UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
+          IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
+          for filename in "${FILES[@]}"; do
+              echo aws s3 cp --dryrun "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+          done
