@@ -17,7 +17,9 @@ jobs:
   deploy-dev:
     name: Deploying to dev S3 bucket
     runs-on: ubuntu-latest
-    environment: development 
+    environment: development
+    env:
+      PACKAGE_PATH: packages/
     steps:          
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
@@ -26,15 +28,20 @@ jobs:
           workflow_conclusion: success
           commit: ${{github.event.pull_request.head.sha}}
           check_artifacts: true
-          path: packages/
+          path: ${{ env.PACKAGE_PATH }}
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
+           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
       - name: Copy to S3
-        env:
-          PACKAGE_PATH: packages/
         run: |
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
-            aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+            aws s3 sync "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
             UPLOADED_FILES="$UPLOADED_FILES$filename,"
           done
           echo $UPLOADED_FILES
