@@ -5,12 +5,6 @@ name: Promote 3P Packages
 on:
   # Allows you to run this workflow manually from the Actions tag
   workflow_dispatch:
-    inputs:
-      package_name:
-        description: 'Filename of package to promote'
-        default: '_'
-        required: false
-        type: string
 
   push:
     branches:
@@ -22,7 +16,7 @@ on:
 jobs:
   deploy-dev:
     name: Deploying to dev S3 bucket
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: development 
     steps:
       - name: Download packages
@@ -44,19 +38,15 @@ jobs:
       - name: Copy to S3
         env:
           PATH: packages/
-        shell: bash
         run: |
-          apt-get install -y findutils
-          # Flatten folder structure due to unzipping files
-          find ${{ env.PATH }} -type f | while read file; do
-            filename=$(basename "$file")
-            aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-            UPLOADED_FILES="$UPLOADED_FILES$filename,"
-          done
-          
-          # Export filelist as an output variable for the prod promotion
-          echo $UPLOADED_FILES
-          echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
+            find ${{ env.PATH }} -type f | while read file; do
+              filename=$(basename "$file")
+              aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+              UPLOADED_FILES="$UPLOADED_FILES$filename,"
+            done
+
+            echo $UPLOADED_FILES
+            echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
            
   deploy-prod:
     name: Deploying to prod S3 bucket
@@ -72,11 +62,9 @@ jobs:
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
       - name: Promote dev package to prod
-        shell: bash
         run: |
-          apt-get install -y findutils
-          UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
-          IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
-          for filename in "${FILES[@]}"; do
-              echo aws s3 cp --dryrun "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-          done
+            UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
+            IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
+            for filename in "${FILES[@]}"; do
+                echo aws s3 cp --dryrun "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+            done
