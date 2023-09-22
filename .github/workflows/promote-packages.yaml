@@ -41,23 +41,26 @@ jobs:
            aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
-      - name: Sync to S3
+      - name: Copy to S3
+        env:
+          PATH: packages/
         run: |
-           aws s3 cp packages/ s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/ --recursive --exclude "*/*" --include "${{ inputs.package_name }}.*" --include *.json --include *.xz --include *.SHA256SUMS --acl bucket-owner-full-control
+          # Flatten folder structure due to unzipping files
+          find $PATH -type f | while read file; do
+            filename=$(basename "$file")
+            aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+            UPLOADED_FILES="$UPLOADED_FILES$filename,"
+          done
+          
+          # Export filelist as an output variable for the prod promotion
+          echo $UPLOADED_FILES
+          echo "uploaded_files=$UPLOADED_FILES" >> "$GITHUB_OUTPUT"
+           
   deploy-prod:
     runs-on: ubuntu-latest
     environment: production
     needs: [deploy-dev]
     steps:
-      - name: Download packages
-        uses: dawidd6/action-download-artifact@v2.28.0
-        with:
-          workflow: build-pr-packages.yaml
-          workflow_conclusion: success
-          commit: ${{github.event.pull_request.head.sha}}
-          check_artifacts: true
-          path: packages/
-          
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -65,7 +68,10 @@ jobs:
            aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
            
-      - name: Sync to S3
+      - name: Promote dev package to prod
         run: |
-           aws s3 sync packages/ s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/ --recursive --exclude "*/*" --include "${{ inputs.package_name }}.*" --include *.json --include *.xz --include *.SHA256SUMS --acl bucket-owner-full-control
-           
+          UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
+          IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
+          for filename in "${FILES[@]}"; do
+              aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
+          done
