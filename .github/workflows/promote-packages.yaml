@@ -136,7 +136,7 @@ jobs:
     name: Deploying to prod S3 bucket
     runs-on: ubuntu-latest
     environment: production
-    needs: [deploy-dev]
+    needs: [deploy-dev, create-o3de-3p-pr]
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
