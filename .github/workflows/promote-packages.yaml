@@ -39,6 +39,7 @@ jobs:
         env:
           PATH: packages/
         run: |
+          export PATH=$PATH:/usr/bin/
           /usr/bin/find ${{ env.PATH }} -type f | while read file; do
             filename=$(basename "$file")
             aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
@@ -64,6 +65,7 @@ jobs:
            
       - name: Promote dev package to prod
         run: |
+          export PATH=$PATH:/usr/bin/
           UPLOADED_FILES="${{ needs.deploy-dev.outputs.uploaded_files }}"
           IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
           for filename in "${FILES[@]}"; do
