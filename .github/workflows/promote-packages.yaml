@@ -115,14 +115,16 @@ jobs:
     
     - name: Commit and create PR
       uses: peter-evans/create-pull-request@v5
+      env:
+        package_name: ${{ env.package_name }}
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PAT }}
         path: ${{ env.O3DE_REPO_PATH }}
         base: development
-        branch: "update-3p-$package_name-cmake-file"
-        commit-message: "Update 3P version and SHA256 hash for $package_name"
-        title: "Update 3P version and SHA256 hash for $package_name"
-        body: "Automated PR to update 3P version and SHA256 for $package_name"
+        branch: "update-3p-${package_name}-cmake-file"
+        commit-message: "Update 3P version and SHA256 hash for ${package_name}"
+        title: "Update 3P version and SHA256 hash for ${package_name}"
+        body: "Automated PR to update 3P version and SHA256 for ${package_name}"
         signoff: true
         delete-branch: true
            
