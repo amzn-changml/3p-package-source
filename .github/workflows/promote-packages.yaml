@@ -41,13 +41,15 @@ jobs:
            
       - name: Copy to S3
         id: dev-upload
+        shell: bash
         run: |
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
             aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
             FILELIST="$FILELIST$filename,"
-            echo "filelist=$( echo "$FILELIST" )" >> $GITHUB_OUTPUT
           done
+
+          echo "filelist=$( echo "$FILELIST" )" >> $GITHUB_OUTPUT
 
   create-o3de-3p-pr:
     name: Create PR in O3DE to update version
@@ -76,7 +78,7 @@ jobs:
         done
         
     - name: Update BuiltInPackages with new SHA256 and version
-
+      shell: bash
       run: |
         IFS=',' read -ra FILENAMES <<<"$UPLOADED_FILES"
         for filename in "${FILENAMES[@]}"; do
@@ -98,7 +100,7 @@ jobs:
             PACKAGE_NAME=$(echo "$file" | rev | cut -d'-' -f3- | rev)  # Extract package name without platform and version
             PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
             
-            FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/$PLATFORM/$CMAKE_FILE"
+            FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
             
             # Replace the entry in the cmake file or append if not found
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
