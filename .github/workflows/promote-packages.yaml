@@ -96,15 +96,14 @@ jobs:
             else
                 CMAKE_FILE=BuiltInPackages_$PLATFORM.cmake
             fi
-            PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
-            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
+            PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2 | awk '{$1=$1};1')  # Extract package name without platform
+            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1 | awk '{$1=$1};1')  # Extract the first part of the package name for matching
             
             FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
             
             # Replace the entry in the cmake file or append if not found
-            grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
-            if [ $? -eq 0 ]; then
-                sed -i "s|ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*PACKAGE_HASH [a-f0-9]\{64\}|ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash|g" "$FILE_PATH"
+            if [ $( grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH" ) ]; then
+                sed -i "s/ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*PACKAGE_HASH [a-f0-9]\{64\}/ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash/g" "$FILE_PATH"
             else
                 echo "ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash)" >> "$FILE_PATH"
             fi
@@ -121,7 +120,7 @@ jobs:
         base: development
         branch: "update-3p-${{ env.package_name }}-cmake-file"
         commit-message: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
-        title: "Update 3P version and SHA256 hash for ${package_name}"
+        title: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
         body: "Automated PR to update 3P version and SHA256 for ${{ env.package_name }}"
         draft: true
         signoff: true
