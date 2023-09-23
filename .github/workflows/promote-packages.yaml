@@ -83,8 +83,8 @@ jobs:
         for filename in "${FILENAMES[@]}"; do
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
             content=$(cat "$filename")
-            file=$(echo "$content" | awk -F'*' '{print $2};1' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
-            hash=$(echo "$content" | awk '{print $1};1') 
+            file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
+            hash=$(echo "$content" | awk '{print $1}') 
             PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
             PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching            
             PLATFORM=$(echo "$file" | cut -d'-' -f5)  # Extract platform from filename
