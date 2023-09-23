@@ -64,7 +64,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: amzn-changml/o3de
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GHA_TOKEN }}
         path: o3de
 
     - name: Copy dev package from S3
@@ -118,7 +118,7 @@ jobs:
       env:
         package_name: ${{ env.package_name }}
       with:
-        token: ${{ secrets.PAT }}
+        token: ${{ secrets.GHA_TOKEN }}
         path: ${{ env.O3DE_REPO_PATH }}
         base: development
         branch: "update-3p-${package_name}-cmake-file"
