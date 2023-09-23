@@ -45,9 +45,10 @@ jobs:
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
             aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-            UPLOADED_FILES="$UPLOADED_FILES$filename,"
+            FILELIST="$FILELIST$filename,"
           done
-          echo "filelist=$( echo "$UPLOADED_FILES" )" >> $GITHUB_OUTPUT
+          echo $FILELIST
+          echo "filelist=$( echo "$FILELIST" )" >> $GITHUB_OUTPUT
 
   create-o3de-3p-pr:
     name: Create PR in O3DE to update version
