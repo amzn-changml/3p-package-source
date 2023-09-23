@@ -83,10 +83,10 @@ jobs:
         for filename in "${FILENAMES[@]}"; do
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
             content=$(cat "$filename")
-            file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//' | awk '{$1=$1};1') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
-            hash=$(echo "$content" | awk '{print $1}' | awk '{$1=$1};1') #awk '{$1=$1};1' trims leading and trailing whitespace
-            PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2 | awk '{$1=$1};1')  # Extract package name without platform
-            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1 | awk '{$1=$1};1')  # Extract the first part of the package name for matching            
+            file=$(echo "$content" | awk -F'*' '{print $2};1' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
+            hash=$(echo "$content" | awk '{print $1};1') 
+            PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
+            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching            
             PLATFORM=$(echo "$file" | cut -d'-' -f5)  # Extract platform from filename
             
             # Determine x86 or aarch64 cmake file name based on file suffix
@@ -101,11 +101,12 @@ jobs:
             FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
             
             # Replace the entry in the cmake file or append if not found
+            formatted_line=$(printf "ly_associate_package(PACKAGE_NAME %-58s TARGETS %-27s PACKAGE_HASH %s)" "$file" "$PARTIAL_PACKAGE_NAME" "$hash") 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
-                sed -i "s|\(ly_associate_package(PACKAGE_NAME \)$PARTIAL_PACKAGE_NAME-[^ ]*\)\(  TARGETS $PARTIAL_PACKAGE_NAME\)\(    PACKAGE_HASH \)[a-f0-9]\{64\}|\1$file\2\3$hash|g" "$FILE_PATH"
+                sed -i "s|\(ly_associate_package(PACKAGE_NAME \)$PARTIAL_PACKAGE_NAME-[^ ]* \(\s*TARGETS $PARTIAL_PACKAGE_NAME\s*PACKAGE_HASH \)[a-f0-9]\{64\}|$formatted_line|g" "$FILE_PATH"
             else
-                echo "ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash)" >> "$FILE_PATH"
+                echo "$formatted_line" >> "$FILE_PATH"
             fi
           fi
         done
