@@ -83,8 +83,8 @@ jobs:
         for filename in "${FILENAMES[@]}"; do
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
             content=$(cat "$filename")
-            file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
-            hash=$(echo "$content" | awk '{print $1}')
+            file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//' | awk '{$1=$1};1') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
+            hash=$(echo "$content" | awk '{print $1}' | awk '{$1=$1};1') #awk '{$1=$1};1' trims leading and trailing whitespace
             
             PLATFORM=$(echo "$file" | cut -d'-' -f5)  # Extract platform from filename
             
@@ -115,16 +115,14 @@ jobs:
     
     - name: Commit and create PR
       uses: peter-evans/create-pull-request@v5
-      env:
-        package_name: ${{ env.package_name }}
       with:
         token: ${{ secrets.GHA_TOKEN }}
         path: ${{ env.O3DE_REPO_PATH }}
         base: development
-        branch: "update-3p-${package_name}-cmake-file"
-        commit-message: "Update 3P version and SHA256 hash for ${package_name}"
+        branch: "update-3p-${{ env.package_name }}-cmake-file"
+        commit-message: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
         title: "Update 3P version and SHA256 hash for ${package_name}"
-        body: "Automated PR to update 3P version and SHA256 for ${package_name}"
+        body: "Automated PR to update 3P version and SHA256 for ${{ env.package_name }}"
         signoff: true
         delete-branch: true
            
