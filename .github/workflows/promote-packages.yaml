@@ -123,6 +123,7 @@ jobs:
         commit-message: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
         title: "Update 3P version and SHA256 hash for ${package_name}"
         body: "Automated PR to update 3P version and SHA256 for ${{ env.package_name }}"
+        draft: true
         signoff: true
         delete-branch: true
            
