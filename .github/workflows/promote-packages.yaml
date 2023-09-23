@@ -47,9 +47,8 @@ jobs:
             filename=$(basename "$file")
             aws s3 cp "$file" "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
             FILELIST="$FILELIST$filename,"
+            echo "filelist=$( echo "$FILELIST" )" >> $GITHUB_OUTPUT
           done
-
-          echo "filelist=$( echo "$FILELIST" )" >> $GITHUB_OUTPUT
 
   create-o3de-3p-pr:
     name: Create PR in O3DE to update version
