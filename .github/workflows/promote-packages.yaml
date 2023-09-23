@@ -86,17 +86,17 @@ jobs:
             file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
             hash=$(echo "$content" | awk '{print $1}')
             
-            PLATFORM=$(echo "$file" | rev | cut -d'-' -f1 | rev)  # Extract platform from filename
+            PLATFORM=$(echo "$file" | cut -d'-' -f5)  # Extract platform from filename
             
             # Determine x86 or aarch64 cmake file name based on file suffix
             if [[ $file == *linux-aarch64 ]]; then
-                CMAKE_FILE="BuiltInPackages_linux_aarch64.cmake"
+                CMAKE_FILE=BuiltInPackages_linux_aarch64.cmake
             elif [[ $file == *linux ]]; then
-                CMAKE_FILE="BuiltInPackages_linux_x86_64.cmake"
+                CMAKE_FILE=BuiltInPackages_linux_x86_64.cmake
             else
-                CMAKE_FILE="BuiltInPackages_$PLATFORM.cmake"
+                CMAKE_FILE=BuiltInPackages_$PLATFORM.cmake
             fi
-            PACKAGE_NAME=$(echo "$file" | rev | cut -d'-' -f3- | rev)  # Extract package name without platform and version
+            PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
             PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
             
             FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
