@@ -104,7 +104,7 @@ jobs:
             formatted_line=$(printf "ly_associate_package(PACKAGE_NAME %-58s TARGETS %-27s PACKAGE_HASH %s)" "$file" "$PARTIAL_PACKAGE_NAME" "$hash") 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
-                sed -i "s|\(ly_associate_package(PACKAGE_NAME \)$PARTIAL_PACKAGE_NAME-[^ ]* \(\s*TARGETS $PARTIAL_PACKAGE_NAME\s*PACKAGE_HASH \)[a-f0-9]\{64\}|$formatted_line|g" "$FILE_PATH"
+                sed -i "s|ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*PACKAGE_HASH [a-f0-9]\{64\}|$formatted_line|g" "$FILE_PATH"
             else
                 echo "$formatted_line" >> "$FILE_PATH"
             fi
