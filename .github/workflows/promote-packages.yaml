@@ -104,7 +104,7 @@ jobs:
             # Replace the entry in the cmake file or append if not found
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
-                sed -i "s/ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*PACKAGE_HASH [a-f0-9]\{64\}/ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash/g" "$FILE_PATH"
+                sed -i "s|\(ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME\)-[^ ]* \(\s*TARGETS $PARTIAL_PACKAGE_NAME\s*PACKAGE_HASH \)[a-f0-9]\{64\}|\1-$file\2$hash|g" "$FILE_PATH"
             else
                 echo "ly_associate_package(PACKAGE_NAME $file   TARGETS $PARTIAL_PACKAGE_NAME    PACKAGE_HASH $hash)" >> "$FILE_PATH"
             fi
