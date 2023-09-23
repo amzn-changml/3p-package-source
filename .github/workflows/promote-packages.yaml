@@ -21,7 +21,7 @@ jobs:
     env:
       PACKAGE_PATH: packages/
     outputs:
-      uploaded_files: "${{ steps.dev-upload.outputs.filelist }}"
+      filelist: "${{ steps.dev-upload.outputs.filelist }}"
     steps:          
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
