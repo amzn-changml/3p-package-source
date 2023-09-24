@@ -105,7 +105,7 @@ jobs:
 
             spaces_before_targets=$(echo "$sample_line" | awk -F'PACKAGE_NAME|TARGETS' '{print length($1) - length("ly_associate_package(PACKAGE_NAME")}')
             spaces_before_hash=$(echo "$sample_line" | awk -F'TARGETS|PACKAGE_HASH' '{print length($1) - length($PARTIAL_PACKAGE_NAME) - length("TARGETS")}')
-            new_line=$(printf "ly_associate_package(PACKAGE_NAME %s-%*sTARGETS %s-%*sPACKAGE_HASH %s" "$file" $spaces_before_targets "" "$PARTIAL_PACKAGE_NAME" $spaces_before_hash "" "$hash")
+            new_line=$(printf "ly_associate_package(PACKAGE_NAME %s%-*sTARGETS %s%-*sPACKAGE_HASH %s" "$file" $spaces_before_targets "" "$PARTIAL_PACKAGE_NAME" $spaces_before_hash "" "$hash")
 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
