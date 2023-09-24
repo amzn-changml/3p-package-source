@@ -87,7 +87,7 @@ jobs:
             hash=$(echo "$content" | awk '{print $1}') 
             PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
             PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching            
-            PLATFORM=$(echo "$file" | cut -d'-' -f5)  # Extract platform from filename
+            PLATFORM=$(echo "$file" | cut -d'-' -f5)
             
             # Determine x86 or aarch64 cmake file name based on file suffix
             if [[ $file == *linux-aarch64 ]]; then
@@ -99,27 +99,19 @@ jobs:
             fi
 
             FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
+            
             # Sample the first line after the comment "#platform-specific" to detect spaces
-            sample_line=$(awk '/#platform-specific/{getline; print}' "$FILE_PATH")
+            sample_line=$(awk '/# platform-specific/{getline; print}' "$FILE_PATH")
 
-            # Detect the number of spaces between PACKAGE_NAME and TARGETS
             spaces_before_targets=$(echo "$sample_line" | awk -F'PACKAGE_NAME|TARGETS' '{print length($1) - length("ly_associate_package(PACKAGE_NAME")}')
-            # Detect the number of spaces between TARGETS and PACKAGE_HASH
             spaces_before_hash=$(echo "$sample_line" | awk -F'TARGETS|PACKAGE_HASH' '{print length($1) - length($PARTIAL_PACKAGE_NAME) - length("TARGETS")}')
-
-            # Construct the new line with the detected spacing
             new_line=$(printf "ly_associate_package(PACKAGE_NAME %s%*sTARGETS %s%*sPACKAGE_HASH %s" "$file" $spaces_before_targets "" "$PARTIAL_PACKAGE_NAME" $spaces_before_hash "" "$hash")
 
-            # Replace the line in the file
-            sed -i "s|ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME-[^ ]* .*PACKAGE_HASH [a-f0-9]\{64\}|$new_line|g" "$FILE_PATH"
-
-            # Replace the entry in the cmake file or append if not found
-            replacement_line=$(printf "ly_associate_package(PACKAGE_NAME %-58s TARGETS %-27s PACKAGE_HASH %s)" "$file" "$PARTIAL_PACKAGE_NAME" "$hash") 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
-                sed -i "s/ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*/$replacement_line/g" "$FILE_PATH"
+                sed -i "s|ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME-[^ ]* .*PACKAGE_HASH [a-f0-9]\{64\}|$new_line|g" "$FILE_PATH"
             else
-                echo "$$replacement_line" >> "$FILE_PATH"
+                echo "$new_line" >> "$FILE_PATH"
             fi
           fi
         done
