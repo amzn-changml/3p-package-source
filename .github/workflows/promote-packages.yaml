@@ -104,7 +104,7 @@ jobs:
             replacement_line=$(printf "ly_associate_package(PACKAGE_NAME %-58s TARGETS %-27s PACKAGE_HASH %s)" "$file" "$PARTIAL_PACKAGE_NAME" "$hash") 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
-                sed -i "s/ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*/$$replacement_line/g" "$FILE_PATH"
+                sed -i "s/ly_associate_package(PACKAGE_NAME $PARTIAL_PACKAGE_NAME.*/$replacement_line/g" "$FILE_PATH"
             else
                 echo "$$replacement_line" >> "$FILE_PATH"
             fi
