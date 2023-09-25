@@ -3,7 +3,7 @@
 @rem # For complete copyright and license terms please see the LICENSE at the root of this distribution.
 @rem # 
 @rem # SPDX-License-Identifier: Apache-2.0 OR MIT
-@rem #
+@rem # 
 
 
 @rem note that toolchain path is relative to the source path (-S) not to the folder this script lives in.
