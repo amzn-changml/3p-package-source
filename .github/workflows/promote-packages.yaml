@@ -100,19 +100,12 @@ jobs:
 
             FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/${PLATFORM^}/$CMAKE_FILE"
             
-            # Sample the first line after the comment "#platform-specific" to detect column widths
-            sample_line=$(awk '/#platform-specific/{getline; print}' "$FILE_PATH")
-
-            # Detect the column width between the beginning of the line and "TARGETS"
-            targets_start=$(echo "$sample_line" | awk '{print index($0, "TARGETS")}')
-            width_before_targets=$((targets_start - 1))
-
-            # Detect the column width between "TARGETS" and "PACKAGE_HASH"
-            package_hash_start=$(echo "$sample_line" | awk '{print index($0, "PACKAGE_HASH")}')
-            width_before_hash=$((package_hash_start - targets_start - 7))  # Subtracting 7 for the length of "TARGETS"
-
-            # Construct the new line using printf with the detected widths
-            new_line=$(printf "ly_associate_package(PACKAGE_NAME %-*s TARGETS %-*s PACKAGE_HASH %s" $width_before_targets "$file" $width_before_hash "$PARTIAL_PACKAGE_NAME" "$hash")
+            # Sample the first line after the comment "# platform-specific" to detect width
+            sample_line=$(awk '/# platform-specific/{getline; print}' "$FILE_PATH")
+            # Detect the width of the line until TARGETS
+            width_before_targets=$(echo "$sample_line" | awk -F'TARGETS' '{print length($1 FS) - length("ly_associate_package(PACKAGE_NAME ") - length(" TARGETS")}')
+            # Construct the new line using printf with the detected width
+            new_line=$(printf "ly_associate_package(PACKAGE_NAME %-*s TARGETS %-27s PACKAGE_HASH %s" $width_before_targets "$file" "$PARTIAL_PACKAGE_NAME" "$hash")
 
             grep -q "$PARTIAL_PACKAGE_NAME" "$FILE_PATH"
             if [ $? -eq 0 ]; then
