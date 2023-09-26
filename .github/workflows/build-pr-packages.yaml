@@ -21,7 +21,7 @@ jobs:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
-        fetch-depth: 10
+        fetch-depth: 0
           
     - name: Get package and platform from JSON changes
       id: detect-platform
@@ -84,6 +84,8 @@ jobs:
     steps:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
         
     - name: Check if package already exists in prod
       env:
