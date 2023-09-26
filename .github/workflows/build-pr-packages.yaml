@@ -21,7 +21,7 @@ jobs:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
+        depth: 0
           
     - name: Get package and platform from JSON changes
       id: detect-platform
