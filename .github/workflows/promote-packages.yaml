@@ -48,7 +48,7 @@ jobs:
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
             url="${{ env.PROD_CDN }}/${filename}"
-            if curl --head --silent --fail ${url}.tar.xz > /dev/null 2>&1; then
+            if curl --head --silent --fail ${url} > /dev/null 2>&1; then
               echo ${filename} already exists in prod. Check the rev in the json file to ensure it is incremented
               exit 1
             else
