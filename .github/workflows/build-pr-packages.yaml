@@ -21,12 +21,12 @@ jobs:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 2
           
     - name: Get package and platform from JSON changes
       id: detect-platform
       run: |
-        CHANGED_FILES=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} --name-only)
+        CHANGED_FILES=$(git diff ${{ github.event.workflow_run.head_sha }}..${{ github.event.pull_request.head.sha }} --name-only)
         # Construct the package and os into a json string to be consumed by Github Actions runners
         JSON="{\"include\":["
         for FILE in $CHANGED_FILES; do
@@ -85,7 +85,7 @@ jobs:
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 2
         
     - name: Check if package already exists in prod
       env:
