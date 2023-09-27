@@ -44,7 +44,6 @@ jobs:
               exit 1
             else
               echo ${filename} does not exist in CDN, continuing...
-              exit 0
             fi
            done
       
