@@ -9,7 +9,11 @@ on:
       PR-num:
         type: string
         required: false
-        description: PR to pull from. Leave blank to pull from last successful run
+        description: PR number to pull from. Leave blank to pull from last successful run
+      Run-id-num:
+        type: string
+        required: false
+        description: Run id number to pull from. Leave blank to pull from last successful run
         
   push:
     branches:
@@ -33,6 +37,7 @@ jobs:
         with:
           workflow: build-pr-packages.yaml
           pr: ${{ inputs.PR-num }}
+          run_id: ${{ inputs.Run-id-num }}
           check_artifacts: true
           path: ${{ env.PACKAGE_PATH }}
 
