@@ -124,7 +124,7 @@ jobs:
       with:
         path: 3p-package-source
         ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 2
+        fetch-depth: 0
     
     - name: Checkout 3P scripts repo
       uses: actions/checkout@v4
