@@ -167,7 +167,7 @@ jobs:
       with:
         arch: none
         distro: none
-        base_image: ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu-latest:latest # built from build-container.yaml
+        base_image: ghcr.io/${{ github.repository }}/run-on-arch-${{ github.repository_owner }}-${{ github.event.repository.name }}-build-container-aarch64-ubuntu20-04:latest # built from build-container.yaml
         setup: |
           grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
