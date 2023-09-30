@@ -39,9 +39,8 @@ jobs:
             python3 -m pip install boto3 certifi
             ## Install sccache
             wget -qO- "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VER}/sccache-v${SCCACHE_VER}-aarch64-unknown-linux-musl.tar.gz" \
-              | tar xzf - -O --wildcards '*/sccache' > '/usr/local/bin/sccache'
-            chmod +x '/usr/local/bin/sccache'
-              && rm -rf /var/lib/apt/lists/* \
+              | tar xzf - -O --wildcards '*/sccache' > '/usr/local/bin/sccache' \
+              && chmod +x '/usr/local/bin/sccache'
             ## Install cmake  
             wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.sh" \
               -O /tmp/cmake-install.sh \
@@ -50,6 +49,7 @@ jobs:
               && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake-${CMAKE_VER} \
               && rm /tmp/cmake-install.sh \
               && ln -s /opt/cmake-${CMAKE_VER}/bin/* /usr/local/bin
+            rm -rf /var/lib/apt/lists/*
           run: |
             lsb_release -a
             uname -a
