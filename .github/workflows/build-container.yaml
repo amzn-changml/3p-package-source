@@ -42,7 +42,7 @@ jobs:
               | tar xzf - -O --wildcards '*/sccache' > '/usr/local/bin/sccache' \
               && chmod +x '/usr/local/bin/sccache'
             ## Install cmake  
-            wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.sh" \
+            wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-linux-aarch64.sh" \
               -O /tmp/cmake-install.sh \
               && chmod u+x /tmp/cmake-install.sh \
               && mkdir /opt/cmake-${CMAKE_VER} \
