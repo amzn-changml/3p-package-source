@@ -30,6 +30,8 @@ jobs:
           shell: /bin/bash
           install: |
             ## Set variables. "env" not supported in install phase
+            export CLANG_VER=12
+            export GCC_VER=9
             export SCCACHE_VER=0.5.4
             export CMAKE_VER=3.27.6
             ## Install build dependancies from apt
@@ -37,6 +39,12 @@ jobs:
             apt-get install -y build-essential curl git libssl-dev libffi-dev libbz2-dev libgdbm-compat-dev libgdbm-dev liblzma-dev libreadline-dev libtool \
               ninja-build python3 python3-pip tcl8.6-dev tk8.6-dev texinfo software-properties-common wget
             python3 -m pip install boto3 certifi
+            # Install Clang/GCC at specific version
+            update-alternatives --remove-all gcc 
+            update-alternatives --remove-all g++
+            apt-get install clang-${CLANG_VER} gcc-${GCC_VER}-dev g++-${GCC_VER}
+            update-alternatives --set gcc /usr/bin/gcc-${GCC_VER}
+            update-alternatives --set g++ /usr/bin/g++-${GCC_VER}
             ## Install sccache
             wget -qO- "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VER}/sccache-v${SCCACHE_VER}-aarch64-unknown-linux-musl.tar.gz" \
               | tar xzf - -O --wildcards '*/sccache' > '/usr/local/bin/sccache' \
@@ -53,6 +61,9 @@ jobs:
           run: |
             lsb_release -a
             uname -a
+            gcc --version
+            g++ --version
+            clang --version
             sccache --version
             cmake --version
             git --version
