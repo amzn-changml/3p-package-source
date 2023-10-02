@@ -42,7 +42,7 @@ jobs:
             # Install Clang/GCC at specific version
             update-alternatives --remove-all gcc 
             update-alternatives --remove-all g++
-            apt-get install clang-${CLANG_VER} gcc-${GCC_VER}-dev g++-${GCC_VER}
+            apt-get install clang-${CLANG_VER} gcc-${GCC_VER} g++-${GCC_VER}
             update-alternatives --set gcc /usr/bin/gcc-${GCC_VER}
             update-alternatives --set g++ /usr/bin/g++-${GCC_VER}
             ## Install sccache
