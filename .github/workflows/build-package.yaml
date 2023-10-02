@@ -149,11 +149,11 @@ jobs:
         CLANG_VER: 12
         GCC_VER: 9
       run: |
-        apt-get install -y clang-${{ env.CLANG_VER }} gcc-${{ env.GCC_VER }} g++-${{ env.GCC_VER }}
-        update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ env.CLANG_VER }} 10
-        update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-$${{ env.CLANG_VER }} 10
-        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ env.GCC_VER }} 10
-        update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VER }} 10
+        sudo apt-get install -y clang-${{ env.CLANG_VER }} gcc-${{ env.GCC_VER }} g++-${{ env.GCC_VER }}
+        sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${{ env.CLANG_VER }} 10
+        sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-$${{ env.CLANG_VER }} 10
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ env.GCC_VER }} 10
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{ env.GCC_VER }} 10
             
     - name: Use sccache
       uses: hendrikmuhs/ccache-action@v1.2.10
