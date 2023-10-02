@@ -41,6 +41,8 @@ jobs:
             python3 -m pip install boto3 certifi
             # Install Clang/GCC at specific version
             apt-get install -y clang-${CLANG_VER} gcc-${GCC_VER} g++-${GCC_VER}
+            update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_VER} 10
+            update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_VER} 10
             update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VER} 10
             update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VER} 10
             ## Install sccache
