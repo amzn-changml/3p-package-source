@@ -5,10 +5,6 @@ on:
   # Allows you to run this workflow manually from the Actions tag
   workflow_dispatch: 
 
-  push:
-    paths:
-      - .github/workflows/build-container.yaml
-
       
 jobs:
   build-container:
@@ -20,10 +16,10 @@ jobs:
       packages: write
     steps:
       - name: Run build command (aarch64)
-        uses: uraimo/run-on-arch-action@v2
+        uses: uraimo/run-on-arch-action@v2.5.1
         with:
           env: |
-            GITHUB_WORKFLOW: ${{ github.workflow }}
+            GITHUB_WORKFLOW: ${{ github.workflow }} # Sets the docker image to the name of the workflow
           arch: aarch64
           distro: ubuntu20.04
           githubToken: ${{ github.token }}
