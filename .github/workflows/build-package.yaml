@@ -114,8 +114,10 @@ jobs:
 
     steps:
     - name: Configure
-      id: get-user
-      run: echo "uid_gid=$(id -u):$(id -g)" >> $GITHUB_OUTPUT
+      id: configure
+      run: |
+        git config --system core.longpaths true
+        echo "uid_gid=$(id -u):$(id -g)" >> $GITHUB_OUTPUT
       
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
@@ -187,7 +189,7 @@ jobs:
           grep -q ${{ matrix.package }} ${PWD}/3p-package-source/package_build_list_host_linux.json || rm ${PWD}/3p-package-source/package_build_list_host_linux.json
         dockerRunArgs: |
           --platform=linux/arm64 
-          --user ${{ steps.get-user.outputs.uid_gid }}
+          --user ${{ steps.configure.outputs.uid_gid }}
           --volume "${PWD}:/workspace"
           --volume "${PWD}/3p-package-scripts:/scripts"
           --volume "${PWD}/3p-package-source:/source"
