@@ -34,7 +34,7 @@ jobs:
               OS_RUNNER="ubuntu-20.04"
               ;;
             windows)
-              OS_RUNNER="windows-2019"
+              OS_RUNNER="windows-latest"
               ;;
             darwin)
               OS_RUNNER="macos-latest"
@@ -143,7 +143,7 @@ jobs:
 
     - name: Update msbuild path
       if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1.12.0
+      uses: ilammy/msvc-dev-cmd@v1.12.1
     
     - name: Install clang/gcc
       if: runner.os == 'Linux'
