@@ -4,9 +4,6 @@ name: Build 3P Packages
 
 on:
   pull_request:
-    branches:
-      - main
-      - development
     paths:
       - 'package_build_list_host_*.json'
 
