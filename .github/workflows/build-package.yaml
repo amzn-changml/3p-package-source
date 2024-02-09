@@ -56,7 +56,8 @@ jobs:
             echo PACKAGE: $PACKAGE
             PACKPATH=$(echo $DIFF | egrep -o "package-system/[^/ ]+(?=/| )" | head -n 1)
             echo PACKPATH: $PACKPATH
-            DOCKER=$(test -e "$PACKPATH"/Dockerfile* && echo 1 || echo 0) # Assume the build scripts will use the Dockerfile if found in the package path
+            DOCKER=$(test -e ${PACKPATH%% }/Dockerfile* && echo 1 || echo 0) # Assume the build scripts will use the Dockerfile if found in the package path
+            echo DOCKER: $DOCKER
             JSONline="{\"package\": \"$PACKAGE\", \"os\": \"$OS_RUNNER\", \"dockerfile\": \"$DOCKER\"},"
             if [[ "$JSON" != *"$JSONline"* ]]; then
               JSON="$JSON$JSONline"
