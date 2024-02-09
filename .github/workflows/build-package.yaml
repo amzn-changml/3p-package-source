@@ -51,9 +51,11 @@ jobs:
             # Wrap the grep inside an if-statement to avoid exiting script upon non-zero exitcode.
             DIFF=$(git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --no-ext-diff --unified=0 \
                       --exit-code -a --no-prefix -- $FILE | egrep "^\+")
-
+            echo DIFF: $DIFF
             PACKAGE=$(echo $DIFF | cut -d'"' -f2)
+            echo PACKAGE: $PACKAGE
             PACKPATH=$(echo $DIFF | egrep -o "package-system/[^ ]*")
+            echo PACKPATH: $PACKPATH
             DOCKER=$(test -e $PACKPATH/Dockerfile* && echo 1 || echo 0) # Assume the build scripts will use the Dockerfile if found in the package path
             JSONline="{\"package\": \"$PACKAGE\", \"os\": \"$OS_RUNNER\", \"dockerfile\": \"$DOCKER\"},"
             if [[ "$JSON" != *"$JSONline"* ]]; then
