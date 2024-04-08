@@ -30,6 +30,7 @@ jobs:
         # Construct the package and os into a json string to be consumed by Github Actions runners
 
         declare -A PACKAGES_JSON
+        declare -A DOCKERFILE
         
         for FILE in $CHANGED_FILES; do
           if [[ $FILE == package_build_list_host_* ]]; then
@@ -58,7 +59,10 @@ jobs:
               unset IFS # Reset IFS to avoid word splitting
               PACKAGE=$(echo $LINE | cut -d'"' -f2)
               PACKPATH=$(echo $LINE | egrep -o "package-system/[^/ ]+(?=/| )" | head -n 1)
-              DOCKER=$(test -e ${PACKPATH%% }/Dockerfile* && echo 1 || echo 0) # Assume the build scripts will use the Dockerfile if found in the package path
+              if [[ -z "${DOCKERFILE["$PACKAGE"]}" && -n "$PACKPATH" ]]; then
+                DOCKER=$(test -e ${PACKPATH%% }/Dockerfile* && echo 1 || echo 0) # Assume the build scripts will use the Dockerfile if found in the package path
+                DOCKERFILE["$PACKAGE"]=1 # Mark Dockerfile check as done
+              fi
               PACKAGES_JSON["$PACKAGE"]="{\"package\": \"$PACKAGE\", \"os\": \"$OS_RUNNER\", \"dockerfile\": \"$DOCKER\"}"
             done
             unset IFS
