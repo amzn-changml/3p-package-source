@@ -154,7 +154,9 @@ jobs:
         python3 -m pip install boto3 certifi
     
     - name: Update cmake/ninja
-      uses: lukka/get-cmake@latest 
+      uses: lukka/get-cmake@latest
+      with:
+        cmakeVersion: 3.28.4
 
     - name: Update msbuild path
       if: runner.os == 'Windows'
