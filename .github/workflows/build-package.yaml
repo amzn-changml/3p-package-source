@@ -145,6 +145,7 @@ jobs:
         remove-dotnet: true
         remove-haskell: true
         remove-codeql: true
+        remove-docker: true
       
     - name: Checkout 3P source repo
       uses: actions/checkout@v4
