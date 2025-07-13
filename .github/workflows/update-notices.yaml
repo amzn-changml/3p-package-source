@@ -1,0 +1,152 @@
+# This automation creates a new set of notices files
+
+name: Update notices file
+
+on:
+  # Allows you to run this workflow manually from the Actions tag
+  workflow_dispatch:
+    inputs:
+      organization:
+        description: 'The org/user of the repo'
+        required: true
+        type: string
+        default: "o3de"
+      repository:
+        description: 'The repo to pull additional licenses'
+        required: false
+        type: string
+        
+run-name: Create notices files
+
+jobs: 
+  Scan:
+    name: Scan licenses
+    strategy:
+      matrix:
+        os: [windows, ubuntu, macos]
+    runs-on: ${{ matrix.os }}-latest
+    environment: ${{ github.ref_name }} # Check environment against branch
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout O3DE repo
+        uses: actions/checkout@v3
+        with:
+          repository: o3de/o3de
+          ref: development
+          fetch-depth: 0
+          path: o3de
+      
+      - name: Checkout 3P packages repo
+        uses: actions/checkout@v3
+        with: 
+          ref: main
+          fetch-depth: 0
+          path: 3p-package-source
+          
+      - name: Configure environment
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            o3de/python/get_python.bat
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y libglu1-mesa-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-xfixes0-dev libunwind-dev
+            o3de/python/get_python.sh
+          else
+            o3de/python/get_python.sh
+          fi
+        
+      - name: Configure
+        run: >
+          cmake -B ${{ github.workspace }}/build
+          -S ${{ github.workspace }}/o3de
+          -DLY_3RDPARTY_PATH=${{ github.workspace }}/3rdParty
+          
+      - name: Run scanner script
+        run: >
+          python3 o3de/scripts/license_scanner/license_scanner.py
+          --config-file o3de/scripts/license_scanner/scanner_config.json
+          --license-file-path NOTICES.txt
+          --package-file-path SPDX-Licenses.json
+          --scan-path o3de 3rdParty 
+      
+      - name: Save artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-licenses
+          path: |
+            NOTICES.txt
+            SPDX-Licenses.json       
+  
+  Merge:
+    name: Merge licenses
+    needs: Scan
+    runs-on: ubuntu-latest
+    env:
+      os_artifacts: windows ubuntu macos
+    environment: ${{ github.ref_name }} # Check environment against branch
+    
+    permissions:
+        contents: write
+     
+    steps:
+      - name: Checkout O3DE repo
+        uses: actions/checkout@v3
+        with:
+          repository: o3de/o3de
+          ref: development
+          fetch-depth: 0
+          path: o3de
+      
+      - name: Checkout 3P packages repo
+        uses: actions/checkout@v3
+        with: 
+          ref: main
+          fetch-depth: 0
+          path: 3p-package-source
+          
+      - name: Build Changelog
+        id: build_changelog
+        run: |
+          echo "changelog=$(git shortlog -e -n -s -- 3p-package-source)" >> $GITHUB_OUTPUT
+      
+      - name: Configure environment
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y dos2unix jq
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Merge licenses
+        run: |
+          jq -s '.[0] + .[1] + .[2] | unique | sort_by(.PackageName)' *-licenses/SPDX-*.json > SPDX-Licenses.json
+          cp -f 3p-package-source/NOTICES.txt NOTICES.txt
+          cp -f 3p-package-source/SPDX-Licenses.json SPDX-Licenses.json 
+          dos2unix -q NOTICES.txt || true
+          for os in ${os_artifacts[@]}; do
+            dos2unix -q $os-licenses/NOTICES.txt || true
+            echo Merging $os from $os-licenses
+            ls -lah $os-licenses
+            diff --line-format %L $os-licenses/NOTICES.txt NOTICES.txt > NOTICES-merged.txt || true
+            cp -f NOTICES-merged.txt NOTICES.txt
+          done
+          cp -f SPDX-Licenses.json 3p-package-source/SPDX-Licenses.json
+          cp -f NOTICES.txt 3p-package-source/NOTICES.txt
+          cp -f 3p-package-source/NOTICES.txt o3de/NOTICES.txt
+              
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4.2.3
+        with:
+          token: ${{ secrets.gha_token }}
+          path: 3p-package-source
+          committer: GitHub <noreply@github.com>
+          title: "[Automated] Notices file for ${{ github.sha }}"
+          commit-message: "[Automated] Notices file for ${{ github.sha }}"
+          body: "${{steps.build_changelog.outputs.changelog}}"
+          signoff: true
+          branch: notices-${{ github.sha }}
+          reviewers: amzn-changml
