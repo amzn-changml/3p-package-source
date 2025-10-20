@@ -2,6 +2,13 @@
 
 name: Promote 3P Packages
 
+run-name: >-
+  ${{ 
+    github.event_name == 'pull_request' 
+    && format('Promotion - PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) 
+    || 'Promote 3P Packages' 
+  }}
+
 on:
   # Allows you to run this workflow manually from the Actions screen
   workflow_dispatch:
@@ -15,16 +22,85 @@ on:
         required: false
         description: Run id number (located in the build url) to pull from. Leave blank to pull from last successful run
 
-  push:
+  # Trigger on PR label to promote packages after successful build
+  # PR cannot be merged until this workflow completes successfully
+  pull_request:
+    types: [labeled]
     branches:
       - main
       - development
-    paths:
-      - 'package_build_list_host_*.json'
 
 jobs:
+  # Check if promotion should proceed and verify authorization
+  check-authorization:
+    name: Verify promotion authorization
+    runs-on: ubuntu-latest
+    # Only run this check for PR label events
+    if: github.event_name == 'pull_request'
+    outputs:
+      should-promote: ${{ steps.check-label.outputs.should-promote }}
+      pr-number: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Check if label is 'promote-packages'
+        id: check-label
+        run: |
+          if [[ "${{ github.event.label.name }}" == "promote-packages" ]]; then
+            echo "should-promote=true" >> $GITHUB_OUTPUT
+            echo "✅ Promotion label detected"
+          else
+            echo "should-promote=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Not a promotion label, skipping"
+          fi
+
+      - name: Verify user is in maintainers team
+        if: steps.check-label.outputs.should-promote == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if the user who added the label is a member of the maintainers team
+          TEAM_SLUG="maintainers"
+          ORG_NAME="${{ github.repository_owner }}"
+          USER="${{ github.event.sender.login }}"
+          
+          # Use GitHub CLI to check team membership
+          if gh api "/orgs/$ORG_NAME/teams/$TEAM_SLUG/memberships/$USER" --silent 2>/dev/null; then
+            echo "✅ User $USER is a member of the maintainers team"
+          else
+            echo "❌ ERROR: User $USER is not a member of the maintainers team"
+            echo "Only maintainers can trigger package promotion"
+            exit 1
+          fi
+
+      - name: Verify build succeeded
+        if: steps.check-label.outputs.should-promote == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if the PR has a successful build-package workflow run
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          
+          # Get the latest workflow run for this PR
+          WORKFLOW_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/build-package.yaml/runs?event=pull_request&branch=${{ github.event.pull_request.head.ref }}" \
+            --jq '.workflow_runs[0].conclusion')
+          
+          if [[ "$WORKFLOW_STATUS" == "success" ]]; then
+            echo "✅ Build package workflow succeeded for this PR"
+          else
+            echo "❌ ERROR: Build package workflow has not completed successfully"
+            echo "Current status: $WORKFLOW_STATUS"
+            echo "Please wait for the build to complete successfully before promoting"
+            exit 1
+          fi
+
   deploy-dev:
     name: Deploying to dev S3 bucket
+    needs: [check-authorization]
+    # Run if it's not a PR event, OR if PR event and authorization passed
+    # Use always() to allow this job to run even when check-authorization is skipped
+    if: |
+      always() && 
+      (github.event_name != 'pull_request' || 
+       (needs.check-authorization.result == 'success' && needs.check-authorization.outputs.should-promote == 'true'))
     runs-on: ubuntu-latest
     environment: development
     env:
@@ -35,8 +111,9 @@ jobs:
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
         with:
-          workflow: build-pr-packages.yaml
-          pr: ${{ inputs.PR-num }}
+          workflow: build-package.yaml
+          # Use PR number from label event, or from manual input, or auto-detect from last run
+          pr: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.PR-num }}
           run_id: ${{ inputs.Run-id-num }}
           check_artifacts: true
           path: ${{ env.PACKAGE_PATH }}
