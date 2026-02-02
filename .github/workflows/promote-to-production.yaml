@@ -1,0 +1,326 @@
+# This automation promotes 3p packages to production after the source PR is merged
+# and the O3DE PR checks have passed
+
+name: Promote to Production
+
+run-name: >-
+  ${{
+    github.event_name == 'push'
+    && format('Production Promotion - {0}', github.event.head_commit.message)
+    || format('Production Promotion - PR #{0}', inputs.pr-number)
+  }}
+
+on:
+  # Triggered when a PR is merged to main or development
+  push:
+    branches:
+      - main
+      - development
+    paths:
+      - 'package_build_list_host_*.json'
+
+  # Allows manual retry if automatic promotion fails
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        type: string
+        required: true
+        description: The merged PR number to promote
+
+jobs:
+  extract-info:
+    name: Extract package and PR information
+    runs-on: ubuntu-latest
+    outputs:
+      package-name: ${{ steps.extract.outputs.package-name }}
+      pr-number: ${{ steps.extract.outputs.pr-number }}
+      filelist: ${{ steps.get-files.outputs.filelist }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract PR number and package name
+        id: extract
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PR_NUMBER="${{ inputs.pr-number }}"
+            echo "Using manually provided PR number: $PR_NUMBER"
+          else
+            # Extract PR number from merge commit message
+            # Format: "Merge pull request #123 from ..." or squash merge with (#123)
+            COMMIT_MSG="${{ github.event.head_commit.message }}"
+            PR_NUMBER=$(echo "$COMMIT_MSG" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+
+            if [[ -z "$PR_NUMBER" ]]; then
+              echo "Could not extract PR number from commit message: $COMMIT_MSG"
+              exit 1
+            fi
+            echo "Extracted PR number from commit: $PR_NUMBER"
+          fi
+
+          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get package name from changed files
+          CHANGED_FILES=$(git diff HEAD~1 --name-only 2>/dev/null || echo "")
+
+          for FILE in $CHANGED_FILES; do
+            if [[ $FILE == package_build_list_host_* ]]; then
+              # Parse the diff to get the package name
+              PACKAGE=$(git diff HEAD~1 -- "$FILE" | grep "^\+" | grep -v "^\+\+\+" | head -1 | cut -d'"' -f2)
+              if [[ -n "$PACKAGE" ]]; then
+                echo "package-name=$PACKAGE" >> $GITHUB_OUTPUT
+                echo "Found package: $PACKAGE"
+                break
+              fi
+            fi
+          done
+
+      - name: Get file list from dev S3
+        id: get-files
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.extract.outputs.pr-number }}"
+          PACKAGE_NAME="${{ steps.extract.outputs.package-name }}"
+
+          # Query the promotion workflow runs for this PR to get the file list
+          echo "Looking for promotion workflow run for PR #$PR_NUMBER..."
+
+          # Find the most recent successful promote-packages run
+          WORKFLOW_RUN=$(gh api "/repos/${{ github.repository }}/actions/workflows/promote-packages.yaml/runs?per_page=20" \
+            --jq ".workflow_runs[] | select(.conclusion == \"success\") | select(.name | contains(\"PR #$PR_NUMBER\")) | {id: .id, name: .name}" | head -1)
+
+          if [[ -z "$WORKFLOW_RUN" ]]; then
+            echo "Could not find a successful promotion workflow run for PR #$PR_NUMBER"
+            echo "Will attempt to list files from dev S3 matching package name"
+          fi
+
+          # For now, we'll construct the file list based on the package name
+          # The actual files will be retrieved from dev S3 in the deploy-prod job
+          echo "filelist=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+
+  wait-for-o3de-checks:
+    name: Wait for O3DE PR checks to pass
+    needs: extract-info
+    runs-on: ubuntu-latest
+    outputs:
+      o3de-pr-number: ${{ steps.find-pr.outputs.pr-number }}
+      checks-passed: ${{ steps.poll.outputs.checks-passed }}
+    env:
+      POLL_INTERVAL: 120  # 2 minutes
+      MAX_ATTEMPTS: 15    # 30 minutes total
+    steps:
+      - name: Find O3DE PR
+        id: find-pr
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+        run: |
+          PACKAGE_NAME="${{ needs.extract-info.outputs.package-name }}"
+
+          # Extract the base package name (first two hyphen-separated parts)
+          BASE_PACKAGE=$(echo "$PACKAGE_NAME" | cut -d'-' -f1-2)
+          BRANCH_NAME="update-3p-${BASE_PACKAGE}-cmake-file"
+
+          echo "Looking for O3DE PR with branch: $BRANCH_NAME"
+
+          # Find the PR in o3de/o3de repo
+          PR_INFO=$(gh api "/repos/o3de/o3de/pulls?head=o3de:$BRANCH_NAME&state=open" --jq '.[0]' 2>/dev/null || echo "")
+
+          if [[ -z "$PR_INFO" || "$PR_INFO" == "null" ]]; then
+            echo "No open O3DE PR found for branch $BRANCH_NAME"
+            echo "This may be expected if the PR was already merged or not yet created"
+            echo "pr-number=" >> $GITHUB_OUTPUT
+            echo "head-sha=" >> $GITHUB_OUTPUT
+          else
+            PR_NUMBER=$(echo "$PR_INFO" | jq -r '.number')
+            HEAD_SHA=$(echo "$PR_INFO" | jq -r '.head.sha')
+            echo "Found O3DE PR #$PR_NUMBER (SHA: $HEAD_SHA)"
+            echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "head-sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Poll for check completion
+        id: poll
+        if: steps.find-pr.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.find-pr.outputs.pr-number }}"
+          HEAD_SHA="${{ steps.find-pr.outputs.head-sha }}"
+          ATTEMPT=1
+
+          echo "Polling O3DE PR #$PR_NUMBER checks (max $MAX_ATTEMPTS attempts, $POLL_INTERVAL seconds apart)..."
+
+          while [[ $ATTEMPT -le $MAX_ATTEMPTS ]]; do
+            echo ""
+            echo "=== Attempt $ATTEMPT of $MAX_ATTEMPTS ==="
+
+            # Get combined commit status
+            COMBINED_STATUS=$(gh api "/repos/o3de/o3de/commits/$HEAD_SHA/status" --jq '.state' 2>/dev/null || echo "unknown")
+
+            # Get check runs summary
+            CHECK_SUMMARY=$(gh api "/repos/o3de/o3de/commits/$HEAD_SHA/check-runs" \
+              --jq '{
+                total: .total_count,
+                success: [.check_runs[] | select(.conclusion == "success")] | length,
+                pending: [.check_runs[] | select(.status == "in_progress" or .status == "queued")] | length,
+                failed: [.check_runs[] | select(.conclusion == "failure" or .conclusion == "cancelled")] | length
+              }' 2>/dev/null || echo '{"total":0,"success":0,"pending":0,"failed":0}')
+
+            TOTAL=$(echo "$CHECK_SUMMARY" | jq -r '.total')
+            SUCCESS=$(echo "$CHECK_SUMMARY" | jq -r '.success')
+            PENDING=$(echo "$CHECK_SUMMARY" | jq -r '.pending')
+            FAILED=$(echo "$CHECK_SUMMARY" | jq -r '.failed')
+
+            echo "Combined status: $COMBINED_STATUS"
+            echo "Check runs: $SUCCESS/$TOTAL succeeded, $PENDING pending, $FAILED failed"
+
+            # Check if all checks passed
+            if [[ "$COMBINED_STATUS" == "success" && "$PENDING" == "0" && "$FAILED" == "0" && "$TOTAL" -gt 0 ]]; then
+              echo "All checks passed!"
+              echo "checks-passed=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # Check if any checks failed
+            if [[ "$FAILED" -gt 0 ]]; then
+              echo "Some checks have failed. Cannot proceed with production deployment."
+              echo "checks-passed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
+            # Wait before next poll
+            if [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; then
+              echo "Checks still pending. Waiting $POLL_INTERVAL seconds..."
+              sleep $POLL_INTERVAL
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "Timeout: Checks did not complete within the allowed time"
+          echo "checks-passed=false" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Handle missing O3DE PR
+        if: steps.find-pr.outputs.pr-number == ''
+        run: |
+          echo "No O3DE PR found. This workflow requires an O3DE PR to validate before production deployment."
+          echo "Please ensure the development promotion workflow created the O3DE PR."
+          exit 1
+
+  deploy-prod:
+    name: Deploy to production S3
+    needs: [extract-info, wait-for-o3de-checks]
+    if: needs.wait-for-o3de-checks.outputs.checks-passed == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_CREDS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_CREDS_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_CREDS_REGION_NAME }}
+
+      - name: List and promote packages from dev to prod
+        env:
+          PACKAGE_NAME: ${{ needs.extract-info.outputs.package-name }}
+        run: |
+          echo "Promoting packages matching: $PACKAGE_NAME"
+
+          # List files in dev bucket matching the package
+          FILES=$(aws s3 ls "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/" | grep "$PACKAGE_NAME" | awk '{print $4}')
+
+          if [[ -z "$FILES" ]]; then
+            echo "No files found in dev bucket matching: $PACKAGE_NAME"
+            exit 1
+          fi
+
+          echo "Found files to promote:"
+          echo "$FILES"
+          echo ""
+
+          for filename in $FILES; do
+            echo "Promoting $filename to production..."
+            aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" \
+                      "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" \
+                      --acl bucket-owner-full-control
+          done
+
+          echo ""
+          echo "Production promotion complete!"
+
+  notify-o3de-pr:
+    name: Notify O3DE PR of production deployment
+    needs: [extract-info, wait-for-o3de-checks, deploy-prod]
+    if: always() && needs.deploy-prod.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on O3DE PR
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+          O3DE_PR_NUMBER: ${{ needs.wait-for-o3de-checks.outputs.o3de-pr-number }}
+          PACKAGE_NAME: ${{ needs.extract-info.outputs.package-name }}
+        run: |
+          if [[ -z "$O3DE_PR_NUMBER" ]]; then
+            echo "No O3DE PR number available, skipping notification"
+            exit 0
+          fi
+
+          gh pr comment "$O3DE_PR_NUMBER" -R o3de/o3de \
+            --body "## Production Deployment Complete
+
+          The package **$PACKAGE_NAME** has been promoted to the production S3 bucket.
+
+          This PR can now be reviewed and merged.
+
+          ---
+          _Automated notification from 3p-package-source production promotion workflow._
+          _Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"
+
+      - name: Mark O3DE PR as ready for review
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+          O3DE_PR_NUMBER: ${{ needs.wait-for-o3de-checks.outputs.o3de-pr-number }}
+        run: |
+          if [[ -z "$O3DE_PR_NUMBER" ]]; then
+            echo "No O3DE PR number available, skipping"
+            exit 0
+          fi
+
+          # Try to mark as ready for review (remove draft status)
+          gh pr ready "$O3DE_PR_NUMBER" -R o3de/o3de 2>/dev/null || echo "PR may already be ready for review or user lacks permission"
+
+  notify-failure:
+    name: Notify on failure
+    needs: [extract-info, wait-for-o3de-checks]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post failure notice to source PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ needs.extract-info.outputs.pr-number }}
+        run: |
+          if [[ -z "$PR_NUMBER" ]]; then
+            echo "No PR number available, cannot post failure notice"
+            exit 0
+          fi
+
+          gh pr comment "$PR_NUMBER" \
+            --body "## Production Promotion Failed
+
+          The automatic production promotion could not complete. This may be because:
+          - O3DE PR checks have not passed yet
+          - O3DE PR was not found
+          - The checks timed out
+
+          **To retry:**
+          1. Ensure the O3DE PR checks are passing
+          2. Manually trigger the 'Promote to Production' workflow with PR number: $PR_NUMBER
+
+          ---
+          _Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_"

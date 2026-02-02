@@ -1,6 +1,13 @@
-# This automation promotes 3p packages based on a merge to default branches
+# This automation promotes 3p packages to development when a maintainer adds the promote-packages label
 
 name: Promote 3P Packages
+
+run-name: >-
+  ${{
+    github.event_name == 'pull_request'
+    && format('Promotion - {0} (PR #{1})', github.event.pull_request.title, github.event.pull_request.number)
+    || 'Promote 3P Packages'
+  }}
 
 on:
   # Allows you to run this workflow manually from the Actions screen
@@ -15,35 +22,125 @@ on:
         required: false
         description: Run id number (located in the build url) to pull from. Leave blank to pull from last successful run
 
-  push:
+  # Triggered when a label is added to a PR
+  pull_request:
+    types: [labeled]
     branches:
       - main
       - development
-    paths:
-      - 'package_build_list_host_*.json'
 
 jobs:
+  check-authorization:
+    name: Check promotion authorization
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      should-promote: ${{ steps.check.outputs.should-promote }}
+      pr-number: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Check if correct label was added
+        id: label-check
+        run: |
+          LABEL="${{ github.event.label.name }}"
+          if [[ "$LABEL" != "promote-packages" ]]; then
+            echo "Label '$LABEL' is not 'promote-packages', skipping promotion"
+            echo "is-promote-label=false" >> $GITHUB_OUTPUT
+          else
+            echo "Promote label detected"
+            echo "is-promote-label=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if user is a maintainer
+        if: steps.label-check.outputs.is-promote-label == 'true'
+        id: maintainer-check
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+        run: |
+          ACTOR="${{ github.actor }}"
+          echo "Checking if $ACTOR is a member of o3de/maintainers..."
+
+          # Check team membership
+          if gh api "/orgs/o3de/teams/maintainers/memberships/$ACTOR" --silent 2>/dev/null; then
+            echo "User $ACTOR is authorized (member of o3de/maintainers)"
+            echo "is-maintainer=true" >> $GITHUB_OUTPUT
+          else
+            echo "User $ACTOR is NOT a member of o3de/maintainers"
+            echo "is-maintainer=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check if build workflow succeeded
+        if: steps.label-check.outputs.is-promote-label == 'true' && steps.maintainer-check.outputs.is-maintainer == 'true'
+        id: build-check
+        env:
+          GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          echo "Checking build status for PR #$PR_NUMBER (commit $HEAD_SHA)..."
+
+          # Get workflow runs for the build workflow on this PR
+          BUILD_STATUS=$(gh api "/repos/${{ github.repository }}/actions/workflows/build-package.yaml/runs?head_sha=$HEAD_SHA" \
+            --jq '.workflow_runs[0].conclusion // "not_found"')
+
+          if [[ "$BUILD_STATUS" == "success" ]]; then
+            echo "Build workflow succeeded"
+            echo "build-passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Build workflow status: $BUILD_STATUS"
+            echo "Build must succeed before promotion can proceed"
+            echo "build-passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Set promotion output
+        id: check
+        if: always()
+        run: |
+          if [[ "${{ steps.label-check.outputs.is-promote-label }}" == "true" && \
+                "${{ steps.maintainer-check.outputs.is-maintainer }}" == "true" && \
+                "${{ steps.build-check.outputs.build-passed }}" == "true" ]]; then
+            echo "should-promote=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-promote=false" >> $GITHUB_OUTPUT
+          fi
+
   deploy-dev:
     name: Deploying to dev S3 bucket
+    needs: [check-authorization]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' && needs.check-authorization.outputs.should-promote == 'true'))
     runs-on: ubuntu-latest
     environment: development
     env:
       PACKAGE_PATH: packages/
     outputs:
       filelist: "${{ steps.dev-upload.outputs.filelist }}"
-    steps:          
+      package-name: "${{ steps.extract-package.outputs.package-name }}"
+    steps:
       - name: Download packages
         uses: dawidd6/action-download-artifact@v2.28.0
         with:
-          workflow: build-pr-packages.yaml
-          pr: ${{ inputs.PR-num }}
+          workflow: build-package.yaml
+          pr: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.PR-num }}
           run_id: ${{ inputs.Run-id-num }}
           check_artifacts: true
           path: ${{ env.PACKAGE_PATH }}
 
+      - name: Extract package name from artifacts
+        id: extract-package
+        run: |
+          # Get the first package name from downloaded artifacts
+          PACKAGE_NAME=$(ls -1 ${{ env.PACKAGE_PATH }} | head -1)
+          echo "package-name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Found package: $PACKAGE_NAME"
+
       - name: Check if package already exists in prod
         env:
-          PROD_CDN: ${{ vars.PROD_CDN }} # Change this to compare on your own endpoint
+          PROD_CDN: ${{ vars.PROD_CDN }}
         run: |
           find ${{ env.PACKAGE_PATH }} -type f | while read file; do
             filename=$(basename "$file")
@@ -55,14 +152,14 @@ jobs:
               echo ${filename} does not exist in CDN, continuing...
             fi
            done
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
            aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
            aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
            aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
-           
+
       - name: Copy to S3
         id: dev-upload
         shell: bash
@@ -76,12 +173,20 @@ jobs:
 
   create-o3de-3p-pr:
     name: Create PR in O3DE to update version
-    needs: deploy-dev
+    needs: [check-authorization, deploy-dev]
+    if: |
+      always() &&
+      needs.deploy-dev.result == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      o3de-pr-url: ${{ steps.create-pr.outputs.pull-request-url }}
+      o3de-pr-number: ${{ steps.create-pr.outputs.pull-request-number }}
     env:
       O3DE_REPO_PATH: o3de
-      DEV_CDN: ${{ vars.DEV_CDN }} # Change this to use your own endpoint
+      DEV_CDN: ${{ vars.DEV_CDN }}
       UPLOADED_FILES: "${{ needs.deploy-dev.outputs.filelist }}"
+      SOURCE_PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || inputs.PR-num }}
+      SOURCE_PR_URL: ${{ github.event_name == 'pull_request' && github.event.pull_request.html_url || format('{0}/{1}/pull/{2}', github.server_url, github.repository, inputs.PR-num) }}
 
     steps:
     - name: Checkout o3de repository
@@ -99,7 +204,7 @@ jobs:
               wget "${{ env.DEV_CDN }}/$filename"
             fi
         done
-        
+
     - name: Update BuiltInPackages with new SHA256 and version
       shell: bash
       run: |
@@ -108,11 +213,11 @@ jobs:
           if [[ $filename == *.tar.xz.SHA256SUMS ]]; then
             content=$(cat "$filename")
             file=$(echo "$content" | awk -F'*' '{print $2}' | sed 's/.tar.xz//g') # *<package_name>-<version>-o3de-<rev>-<platform>.tar.xz
-            hash=$(echo "$content" | awk '{print $1}') 
+            hash=$(echo "$content" | awk '{print $1}')
             PACKAGE_NAME=$(echo "$file" | cut -d'-' -f1-2)  # Extract package name without platform
-            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching            
+            PARTIAL_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | cut -d'-' -f1)  # Extract the first part of the package name for matching
             PLATFORM=$(echo "$file" | rev | cut -d'-' -f1 | rev)
-            
+
             # Determine x86 or aarch64 cmake file name based on file suffix
             if [[ $file == *linux-aarch64 ]]; then
                 CMAKE_FILE=BuiltInPackages_linux_aarch64.cmake
@@ -134,7 +239,7 @@ jobs:
             if [[ $PLATFORM == ios ]]; then
                 FILE_PATH="${{ env.O3DE_REPO_PATH }}/cmake/3rdParty/Platform/iOS/$CMAKE_FILE"
             fi
-            
+
             # Sample the first line after the comment "# platform-specific" to detect width
             sample_line=$(awk '/# platform-specific/{getline; print}' "$FILE_PATH")
             # Detect the width of the line until TARGETS
@@ -150,10 +255,11 @@ jobs:
             fi
           fi
         done
-        
+
         echo "package_name=$PACKAGE_NAME" >> $GITHUB_ENV
-    
+
     - name: Commit and create PR
+      id: create-pr
       uses: peter-evans/create-pull-request@v5
       with:
         token: ${{ secrets.GHA_TOKEN }}
@@ -162,29 +268,37 @@ jobs:
         branch: "update-3p-${{ env.package_name }}-cmake-file"
         commit-message: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
         title: "Update 3P version and SHA256 hash for ${{ env.package_name }}"
-        body: "Automated PR to update 3P version and SHA256 for ${{ env.package_name }}"
+        body: |
+          ## Automated 3P Package Update
+
+          **Package**: ${{ env.package_name }}
+          **Source PR**: ${{ env.SOURCE_PR_URL }}
+          **Build Workflow**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          ### Changes
+          Updates the 3P package version and SHA256 hash in the BuiltInPackages cmake files.
+
+          ### Production Deployment
+          Production deployment will occur automatically after:
+          1. This PR's checks pass
+          2. The source 3P PR is merged
+
+          ---
+          _This PR was automatically generated by the 3p-package-source promotion workflow._
         draft: true
         signoff: true
         delete-branch: true
-           
-  deploy-prod:
-    name: Deploying to prod S3 bucket
-    needs: [deploy-dev, create-o3de-3p-pr]
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      UPLOADED_FILES: "${{ needs.deploy-dev.outputs.filelist }}"
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-           aws-access-key-id    :  ${{ secrets.AWS_CREDS_ACCESS_KEY }}
-           aws-secret-access-key:  ${{ secrets.AWS_CREDS_SECRET_KEY }}
-           aws-region           :  ${{ secrets.AWS_CREDS_REGION_NAME }}
-           
-      - name: Promote dev package to prod
-        run: |
-          IFS=',' read -ra FILES <<< "$UPLOADED_FILES"
-          for filename in "${FILES[@]}"; do
-              aws s3 cp "s3://${{ secrets.AWS_PACKAGE_DEV_S3_BUCKET }}/$filename" "s3://${{ secrets.AWS_PACKAGE_PROD_S3_BUCKET }}/$filename" --acl bucket-owner-full-control
-          done
+
+    - name: Comment on source PR with O3DE PR link
+      if: steps.create-pr.outputs.pull-request-url && github.event_name == 'pull_request'
+      env:
+        GH_TOKEN: ${{ secrets.GHA_TOKEN }}
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} \
+          --repo ${{ github.repository }} \
+          --body "O3DE PR created: ${{ steps.create-pr.outputs.pull-request-url }}
+
+        **Next steps:**
+        1. Wait for O3DE PR checks to pass
+        2. Merge this PR to trigger production deployment
+        3. Production deployment will copy packages from dev to prod S3"
