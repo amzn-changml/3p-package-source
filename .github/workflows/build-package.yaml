@@ -65,7 +65,7 @@ jobs:
               fi
 
               # Determine the OS runner based on the package name
-              if [[ $PACKAGE =~ "aarch64" ]]; then
+              if [[ $PACKAGE =~ "linux-aarch64" ]]; then
                 PACKAGE_OS="ubuntu-22.04-arm"
                 echo "OS Image selected for $PACKAGE: $PACKAGE_OS"
               elif [[ $PLATFORM =~ "linux" ]]; then
@@ -74,8 +74,11 @@ jobs:
               elif [[ $PLATFORM =~ "windows" ]]; then
                 PACKAGE_OS="windows-latest"
                 echo "OS Image selected for $PACKAGE: $PACKAGE_OS"
+              elif [[ $PLATFORM =~ "darwin-arm64" ]]; then
+                PACKAGE_OS="macos-15"
+                echo "OS Image selected for $PACKAGE: $PACKAGE_OS"
               elif [[ $PLATFORM =~ "darwin" ]]; then
-                PACKAGE_OS="macos-13"
+                PACKAGE_OS="macos-15-intel"
                 echo "OS Image selected for $PACKAGE: $PACKAGE_OS"
               else
                 PACKAGE_OS="windows-latest" # Default
@@ -183,7 +186,7 @@ jobs:
     
     - name: Install python dependancies
       run: |
-        python3 -m pip install boto3 certifi
+        python3 -m pip install boto3 certifi pyyaml requests numpy
     
     - name: Update cmake/ninja
       uses: lukka/get-cmake@latest
@@ -199,10 +202,20 @@ jobs:
         "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.14.29.16.11.x86.x64 --add Microsoft.VisualStudio.Component.VC.14.29.16.11.ATL --add Microsoft.VisualStudio.Component.VC.14.29.16.11.CLI.Support --quiet --norestart
 
     - name: Update msbuild path
-      if: runner.os == 'Windows'
+      if: ${{ !contains(matrix.package, 'qt-6') && runner.os == 'Windows' }} 
       uses: ilammy/msvc-dev-cmd@v1.13.0
       with:
         toolset: 14.29
+    - name: Install nasm on macos
+      if: runner.os == 'macOS'
+      run: |
+        brew install nasm
+
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v14
+      with:
+        version: 4.0.10
+
     - name: Setup NDK
       env:
         ANDROID_NDK_VERSION: 25.1.8937393
@@ -276,6 +289,9 @@ jobs:
     - name: Run build command
       env:
         CMAKE_GENERATOR: Ninja # ccache/sccache cannot be used as the compiler launcher under cmake if the generator is MSBuild
+        CMAKE_POLICY_VERSION_MINIMUM: 3.5  # Prevent CMake Error at CMakeLists.txt:5 (cmake_minimum_required):
+                                           # Compatibility with CMake < 3.5 has been removed from CMake.
+        MACOSX_DEPLOYMENT_TARGET: 13.0 # Set the minimum MacOS version to be compatible with the oldest supported version of MacOS
       run: |
         python3 scripts/o3de_package_scripts/build_package.py --search_path source ${{ matrix.package }}
           

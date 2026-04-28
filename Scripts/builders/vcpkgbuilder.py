@@ -54,6 +54,10 @@ class VcpkgBuilder(object):
                 True: 'x64-osx',
                 False: 'x64-osx-dynamic',
             },
+            'mac-arm64': {
+                True: 'arm64-osx',
+                False: 'arm64-osx-dynamic',
+            },
             'windows': {
                 True: 'x64-windows-static',
                 False: 'x64-windows',
@@ -69,6 +73,10 @@ class VcpkgBuilder(object):
             'ios': {
                 True: 'arm64-ios',
                 False: 'arm64-ios-dynamic',
+            },
+            'wasm32': {
+                True: 'wasm32-emscripten',
+                False: 'wasm32-emscripten',
             }
         }
         try:

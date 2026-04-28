@@ -31,6 +31,7 @@ SOURCEFORGE_DOWNLOAD_URL = f"{SOURCEFORGE_URL}/{SOURCE_TAR_FILE}/download"
 PLATFORM_LINUX = 'linux'
 PLATFORM_LINUX_ARM64 = 'linux-aarch64'
 PLATFORM_MAC = 'mac'
+PLATFORM_MAC_ARM64 = 'mac-arm64'
 PLATFORM_WINDOWS = 'windows'
 
 if platform.system() == 'Linux':
@@ -41,7 +42,10 @@ if platform.system() == 'Linux':
     shared_lib_name = 'libmcpp.so'
     static_lib_name = 'libmcpp.a'
 elif platform.system() == 'Darwin':
-    platform_name = PLATFORM_MAC
+    if platform.processor() == 'arm':
+        platform_name = PLATFORM_MAC_ARM64
+    else:
+        platform_name = PLATFORM_MAC
     shared_lib_name = 'libmcpp.dylib'
     static_lib_name = 'libmcpp.a'
 elif platform.system() == 'Windows':
@@ -69,9 +73,9 @@ elif platform.system() == 'Windows':
 else:
     assert False, "Invalid platform"
 
-assert platform_name in (PLATFORM_LINUX, PLATFORM_LINUX_ARM64, PLATFORM_MAC, PLATFORM_WINDOWS), f"Invalid platform_name {platform_name}"
+assert platform_name in (PLATFORM_LINUX, PLATFORM_LINUX_ARM64, PLATFORM_MAC, PLATFORM_MAC_ARM64, PLATFORM_WINDOWS), f"Invalid platform_name {platform_name}"
 
-TARGET_3PP_PACKAGE_FOLDER = SCRIPT_PATH.parent / f'mcpp-{platform_name}'
+TARGET_3PP_PACKAGE_FOLDER = SCRIPT_PATH.parent / 'temp' / f'mcpp-{platform_name}'
 
 MCPP_DETAIL = f"""
 The MCPP package will be patched and built from the following sources
@@ -82,7 +86,7 @@ Patch File                         : {PATCH_FILE}
 Target Pre-package Platform target : {TARGET_3PP_PACKAGE_FOLDER}
 Example command:
 
-python get_and_build_linux.sh mcpp-2.7.2_az.1-rev1-{platform_name}
+python get_and_build_linux.sh mcpp-2.7.2_az.1-rev2-{platform_name}
 """
 
 
@@ -224,7 +228,7 @@ def configure_build(temp_folder):
             dst_visualc_mak = temp_folder / SOURCE_NAME / 'src' / 'visualc.mak'
             shutil.copyfile(str(src_visualc_mak.resolve()), str(dst_visualc_mak.resolve()))
         else:
-            if platform_name == PLATFORM_MAC:
+            if platform_name in (PLATFORM_MAC, PLATFORM_MAC_ARM64):
                 # For mac, we need to disable the 'implicit-function-declaration' or else the build will fail
                 env_copy = os.environ.copy()
                 env_copy['CFLAGS'] = '-Wno-implicit-function-declaration'
@@ -296,7 +300,7 @@ def copy_build_artifacts(temp_folder):
             (source_path / 'src' / '.libs' / 'libmcpp.so.0.3.0', target_mcpp_root / 'lib'),
             (source_path / 'src' / '.libs' / 'mcpp', target_mcpp_root / 'lib')
         ])
-    elif platform_name == 'mac':
+    elif platform_name in ('mac', 'mac-arm64'):
         file_copy_tuples.extend([
             (source_path / 'src' / '.libs' / 'libmcpp.a', target_mcpp_root / 'lib'),
             (source_path / 'src' / '.libs' / 'libmcpp.0.3.0.dylib', target_mcpp_root / 'lib'),
@@ -323,7 +327,7 @@ def copy_build_artifacts(temp_folder):
     if platform_name in ('linux', 'linux-aarch64'):
         base_shared_lib_name = 'libmcpp.so.0.3.0'
         symlinks = ['libmcpp.so.0', 'libmcpp.so']
-    elif platform_name == 'mac':
+    elif platform_name in ('mac', 'mac-arm64'):
         base_shared_lib_name = 'libmcpp.0.3.0.dylib'
         symlinks = ['libmcpp.0.dylib', 'libmcpp.dylib']
     else:

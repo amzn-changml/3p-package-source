@@ -2,7 +2,7 @@
    "git_url":"https://github.com/lua/lua.git",
    "git_tag":"v5.4.4",
    "package_name":"Lua",
-   "package_version":"5.4.4-rev1",
+   "package_version":"5.4.4-rev2",
    "package_url":"https://github.com/lua/lua",
    "package_license":"MIT",
    "package_license_file":"LICENSE.txt",
@@ -13,6 +13,9 @@
       "CMakeLists.txt",
       "LICENSE.txt"
    ],
+   "cmake_generate_args_common": [
+      "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+    ],
    "cmake_build_args_common": [
       "--parallel"
    ],
@@ -36,10 +39,26 @@
                "-DCMAKE_C_FLAGS=\"-fPIC -O2 -Wall -Wextra\"",
                "-DCMAKE_BUILD_TYPE=Release"
             ]
+         },
+         "Emscripten":{
+            "cmake_generate_args": [
+               "-G",
+               "Ninja",
+               "-DCMAKE_C_FLAGS=\"-fPIC -O2 -Wall -Wextra\"",
+               "-DCMAKE_BUILD_TYPE=Release"
+            ]
          }
       },
       "Darwin":{
          "Mac":{
+            "cmake_generate_args":[
+               "-G",
+               "Xcode",
+               "-DCMAKE_TOOLCHAIN_FILE=../../../../Scripts/cmake/Platform/Mac/Toolchain_mac.cmake",
+               "-DCMAKE_C_FLAGS=\"-fPIC -O2 -Wall -Wextra -DLUA_USE_MACOSX\""
+            ]
+         },
+         "Mac-arm64":{
             "cmake_generate_args":[
                "-G",
                "Xcode",
@@ -69,7 +88,7 @@
                "-DCMAKE_BUILD_TYPE=Release"
             ]
          },
-	 "Linux-aarch64": "@Linux"
+         "Linux-aarch64": "@Linux"
       }
    }
 }
